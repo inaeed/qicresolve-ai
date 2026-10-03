@@ -1,58 +1,7 @@
-<x-layouts::auth :title="__('Log in')">
-    <div class="flex flex-col gap-6">
-        <x-auth-header :title="__('Log in to your account')" :description="__('Enter your email and password below to log in')" />
-
-        <!-- Session Status -->
-        <x-auth-session-status class="text-center" :status="session('status')" />
-
-
-        <form method="POST" action="{{ route('login.store') }}" class="flex flex-col gap-6">
-            @csrf
-
-            <!-- Email Address -->
-            <flux:input
-                name="email"
-                :label="__('Email address')"
-                :value="old('email')"
-                type="email"
-                required
-                autofocus
-                autocomplete="email"
-                placeholder="email@example.com"
-            />
-
-            <!-- Password -->
-            <div class="relative">
-                <flux:input
-                    name="password"
-                    :label="__('Password')"
-                    type="password"
-                    required
-                    autocomplete="current-password"
-                    :placeholder="__('Password')"
-                    viewable
-                />
-
-                @if (Route::has('password.request'))
-                    <flux:link class="absolute top-0 text-sm end-0" :href="route('password.request')" wire:navigate>
-                        {{ __('Forgot your password?') }}
-                    </flux:link>
-                @endif
-            </div>
-
-            <!-- Remember Me -->
-            <flux:checkbox name="remember" :label="__('Remember me')" :checked="old('remember')" />
-
-            <div class="flex items-center justify-end">
-                <flux:button variant="primary" type="submit" class="w-full" data-test="login-button">
-                    {{ __('Log in') }}
-                </flux:button>
-            </div>
-        </form>
-
-        <div class="space-x-1 text-sm text-center rtl:space-x-reverse text-zinc-600 dark:text-zinc-400">
-            <span>{{ __('Don\'t have an account?') }}</span>
-            <flux:link :href="route('register')" wire:navigate>{{ __('Sign up') }}</flux:link>
-        </div>
-    </div>
-</x-layouts::auth>
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Masuk · QICResolve</title>@vite(['resources/css/app.css','resources/js/app.js'])</head>
+<body class="qic-app qic-public"><header class="qic-public-nav"><a class="qic-wordmark" href="{{ route('home') }}">QICResolve</a><a href="{{ route('home') }}">Kembali ke beranda</a></header><main class="qic-login"><aside class="qic-hero-panel"><span class="qic-eyebrow">QUALITY ISSUE WORKSPACE</span><h1>Terhubung dalam satu proses.</h1><p>Main Assy melapor. Auto Line menindaklanjuti. Quality memverifikasi dan mengambil keputusan.</p><p class="qic-small">Gunakan akun yang terdaftar pada proyek Laravel kamu.</p></aside><section class="qic-card"><h2>Masuk ke akun</h2><p class="qic-muted">Lanjutkan pekerjaan dan pantau quality issue.</p>@if(session('status'))<p class="qic-success" role="status">{{ session('status') }}</p>@endif
+<form method="POST" action="{{ route('login.store') }}">@csrf
+<label class="qic-field">Email<input name="email" type="email" value="{{ old('email') }}" required autofocus autocomplete="username" @error('email') aria-invalid="true" aria-describedby="email-error" @enderror></label>@error('email')<p id="email-error" class="qic-error" role="alert">{{ $message }}</p>@enderror
+<label class="qic-field">Password<input name="password" type="password" required autocomplete="current-password" @error('password') aria-invalid="true" aria-describedby="password-error" @enderror></label>@error('password')<p id="password-error" class="qic-error" role="alert">{{ $message }}</p>@enderror
+<label class="qic-check"><input type="checkbox" name="remember" value="1" @checked(old('remember'))> Ingat saya</label><button class="qic-button qic-full" type="submit">Masuk</button></form><div class="qic-auth-links">@if(Route::has('password.request'))<a href="{{ route('password.request') }}">Lupa password?</a>@endif @if(Route::has('register'))<a href="{{ route('register') }}">Buat akun</a>@endif</div></section></main></body></html>
