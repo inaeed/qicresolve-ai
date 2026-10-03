@@ -1,18 +1,6 @@
-<x-layouts::app :title="__('Dashboard')">
-    <div class="flex h-full w-full flex-1 flex-col gap-4 rounded-xl">
-        <div class="grid auto-rows-min gap-4 md:grid-cols-3">
-            <div class="relative aspect-video overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-700">
-                <x-placeholder-pattern class="absolute inset-0 size-full stroke-gray-900/20 dark:stroke-neutral-100/20" />
-            </div>
-            <div class="relative aspect-video overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-700">
-                <x-placeholder-pattern class="absolute inset-0 size-full stroke-gray-900/20 dark:stroke-neutral-100/20" />
-            </div>
-            <div class="relative aspect-video overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-700">
-                <x-placeholder-pattern class="absolute inset-0 size-full stroke-gray-900/20 dark:stroke-neutral-100/20" />
-            </div>
-        </div>
-        <div class="relative h-full flex-1 overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-700">
-            <x-placeholder-pattern class="absolute inset-0 size-full stroke-gray-900/20 dark:stroke-neutral-100/20" />
-        </div>
-    </div>
-</x-layouts::app>
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Workspace Demo · QICResolve</title>@vite(['resources/css/app.css','resources/js/app.js'])</head>
+<body class="qic-app qic-public"><header class="qic-public-nav"><a class="qic-wordmark" href="{{ route('home') }}">QICResolve</a><form action="{{ route('logout') }}" method="POST">@csrf<button class="qic-button qic-secondary">Keluar akun</button></form></header>
+<main class="qic-public-main"><span class="qic-eyebrow">WORKSPACE DEMONSTRASI</span><h1>Selamat datang, {{ auth()->user()->name }}.</h1><p class="qic-lead">Pilih peran untuk menjelajahi alur complaint dari pelaporan hingga penyelesaian.</p><p class="qic-warning">Pemilihan ini hanya mengganti tampilan demo, bukan memberikan hak akses produksi. Semua workspace menggunakan data simulasi pada tab yang sama.</p><div class="qic-role-cards">
+@foreach(config('qic_ui') as $role => $definition)<article class="qic-card"><span class="qic-eyebrow">{{ $definition['subtitle'] }}</span><h2>{{ $definition['label'] }}</h2><p>{{ ['main-assy' => 'Buat complaint, lampirkan bukti, dan pantau penanganan.', 'auto-line' => 'Investigasi, susun respons 3C, dan dokumentasikan tindakan korektif.', 'quality' => 'Verifikasi, tugaskan, tinjau 3C, dan putuskan penyelesaian.'][$role] }}</p><a class="qic-button" href="{{ route($role.'.dashboard') }}">Buka workspace →</a></article>@endforeach
+</div><p><a href="{{ route('profile.edit') }}">Pengaturan akun sebenarnya</a></p></main></body></html>

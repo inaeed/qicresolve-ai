@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import './qic.css';
 @import '../../vendor/livewire/flux/dist/flux.css';
 
 @source '../views';
