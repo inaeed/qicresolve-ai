@@ -19,7 +19,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 );
             }
 
-            /** @phpstan-var view-string $viewName */
             Route::view('/'.$role.$page['path'], $viewName, [
                 'qicRole' => $role,
                 'qicPage' => $key,
