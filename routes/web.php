@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
 
+Route::middleware(['auth', 'verified'])->group(function () {
 Route::get('/dashboard', function () {
     $user = auth()->user();
 
@@ -22,7 +23,7 @@ Route::get('/dashboard', function () {
     };
 })->middleware(['auth', 'verified'])
   ->name('dashboard');
-  
+
     // Workspace untuk demonstrasi, belum otorisasi role produksi.
     foreach (config('qic_ui') as $role => $definition) {
         foreach ($definition['pages'] as $key => $page) {
