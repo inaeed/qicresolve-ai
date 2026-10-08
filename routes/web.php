@@ -21,8 +21,8 @@ Route::get('/dashboard', function () {
 
         default => abort(403, 'Role pengguna tidak dikenali.'),
     };
-})->middleware(['auth', 'verified'])
-  ->name('dashboard');
+})->name('dashboard');
+});
 
     // Workspace untuk demonstrasi, belum otorisasi role produksi.
     foreach (config('qic_ui') as $role => $definition) {
