@@ -11,7 +11,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         return match ($user->role) {
             'main_assy' => redirect()->route('main-assy.dashboard'),
             'auto_line' => redirect()->route('auto-line.dashboard'),
-            'quality'   => redirect()->route('quality.dashboard'),
+            'quality' => redirect()->route('quality.dashboard'),
 
             // Hanya Della/project owner yang melihat
             // halaman pemilihan 3 workspace.
@@ -35,10 +35,10 @@ foreach (config('qic_ui') as $role => $definition) {
         }
 
         Route::view('/'.$role.$page['path'], $viewName, [
-            'qicRole'   => $role,
-            'qicPage'   => $key,
+            'qicRole' => $role,
+            'qicPage' => $key,
             'qicScreen' => $page['screen'],
-            'qicTitle'  => $page['title'],
+            'qicTitle' => $page['title'],
         ])
             ->where('issue', 'QI-[0-9]+')
             ->name($role.'.'.$key);

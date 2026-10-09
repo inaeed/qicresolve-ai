@@ -16,7 +16,7 @@ class RoleMiddleware
         $user = $request->user();
 
         // Belum login
-        if (!$user) {
+        if (! $user) {
             return redirect()->route('login');
         }
 
@@ -26,7 +26,7 @@ class RoleMiddleware
         }
 
         // User hanya boleh membuka workspace sesuai role
-        if (!in_array($user->role, $roles, true)) {
+        if (! in_array($user->role, $roles, true)) {
             abort(403, 'Anda tidak memiliki akses ke workspace ini.');
         }
 
