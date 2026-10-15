@@ -1,6 +1,160 @@
+
 <!DOCTYPE html>
-<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>QICResolve · Quality Issue Tracking</title>@vite(['resources/css/app.css','resources/js/app.js'])</head>
-<body class="qic-app qic-public"><header class="qic-public-nav"><a class="qic-wordmark" href="{{ route('home') }}">QICResolve</a><nav><a href="#workflow">Alur kerja</a><a href="#features">Fitur</a>@auth<a class="qic-button" href="{{ route('dashboard') }}">Buka Workspace</a>@else<a class="qic-button" href="{{ route('login') }}">Masuk</a>@endauth</nav></header>
-<main class="qic-public-main"><section class="qic-hero"><div><span class="qic-eyebrow">QUALITY ISSUE & INTERNAL CUSTOMER COMPLAINT</span><h1>Satu alur untuk setiap quality issue.</h1><p class="qic-lead">Hubungkan Main Assy, Auto Line, dan Quality dalam pelaporan, investigasi, respons 3C, serta verifikasi penyelesaian yang dapat ditelusuri.</p><div class="qic-actions">@auth<a class="qic-button" href="{{ route('dashboard') }}">Jelajahi Workspace</a>@else<a class="qic-button" href="{{ route('login') }}">Masuk ke QICResolve</a>@endauth<a class="qic-button qic-secondary" href="#workflow">Lihat Alur Kerja</a></div></div><aside class="qic-hero-panel"><span class="qic-eyebrow">PRINSIP SISTEM</span><h2>Keputusan tetap pada Quality.</h2><p>AI mendukung analisis. Bukti, respons, dan hasil tindakan tetap diperiksa manusia.</p><div class="qic-hero-stat"><strong>3</strong><span>peran utama</span><strong>3C</strong><span>Concern · Cause · Countermeasure</span></div><p class="qic-small">Prototipe akademik dengan data dan SLA simulasi.</p></aside></section>
-<section id="workflow"><span class="qic-eyebrow">WORKFLOW</span><h2>Dari temuan sampai penyelesaian</h2><ol class="qic-workflow"><li><strong>01 · Pelaporan</strong>Main Assy mengirim complaint dan bukti.</li><li><strong>02 · Verifikasi</strong>Quality memeriksa dan menugaskan Auto Line.</li><li><strong>03 · Penanganan</strong>Auto Line melakukan investigasi dan respons 3C.</li><li><strong>04 · Penyelesaian</strong>Quality meninjau 3C dan memverifikasi tindakan.</li></ol></section>
-<section id="features"><h2>Informasi yang terhubung</h2><div class="qic-role-cards"><article class="qic-card"><h3>Issue tracking</h3><p>Status, pemilik tugas, dan riwayat aktivitas dalam satu tempat.</p></article><article class="qic-card"><h3>Respons 3C</h3><p>Concern, Cause, Countermeasure, evidence, dan riwayat revisi.</p></article><article class="qic-card"><h3>Decision support</h3><p>Rancangan monitoring SLA dan rekomendasi AI dengan kontrol Quality.</p></article></div></section></main><footer class="qic-footer">QICResolve · Proyek PBL · Politeknik Negeri Batam</footer></body></html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>QICResolve · Quality Issue Tracking</title>
+
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+</head>
+
+<body class="qic-app qic-public">
+
+    <header class="qic-public-nav">
+        <a class="qic-wordmark" href="{{ route('home') }}">
+            QICResolve
+        </a>
+
+        <nav>
+            <a href="#workflow">Alur kerja</a>
+            <a href="#features">Fitur</a>
+
+            @auth
+                <a class="qic-button" href="{{ route('workspace.entry') }}">
+                    Buka Workspace
+                </a>
+            @else
+                <a class="qic-button" href="{{ route('login') }}">
+                    Masuk
+                </a>
+            @endauth
+        </nav>
+    </header>
+
+    <main class="qic-public-main">
+
+        <section class="qic-hero">
+            <div>
+                <span class="qic-eyebrow">
+                    QUALITY ISSUE & INTERNAL CUSTOMER COMPLAINT
+                </span>
+
+                <h1>Satu alur untuk setiap quality issue.</h1>
+
+                <p class="qic-lead">
+                    Hubungkan Main Assy, Auto Line, dan Quality dalam
+                    pelaporan, investigasi, respons 3C, serta verifikasi
+                    penyelesaian yang dapat ditelusuri.
+                </p>
+
+                <div class="qic-actions">
+
+                    @auth
+                        <a class="qic-button"
+                           href="{{ route('workspace.entry') }}">
+                            Jelajahi Workspace
+                        </a>
+                    @else
+                        <a class="qic-button"
+                           href="{{ route('login') }}">
+                            Masuk ke QICResolve
+                        </a>
+                    @endauth
+
+                    <a class="qic-button qic-secondary" href="#workflow">
+                        Lihat Alur Kerja
+                    </a>
+                </div>
+            </div>
+
+            <aside class="qic-hero-panel">
+                <span class="qic-eyebrow">PRINSIP SISTEM</span>
+
+                <h2>Keputusan tetap pada Quality.</h2>
+
+                <p>
+                    AI mendukung analisis. Bukti, respons, dan hasil
+                    tindakan tetap diperiksa manusia.
+                </p>
+
+                <div class="qic-hero-stat">
+                    <strong>3</strong>
+                    <span>peran utama</span>
+
+                    <strong>3C</strong>
+                    <span>Concern · Cause · Countermeasure</span>
+                </div>
+
+                <p class="qic-small">
+                    Prototipe akademik dengan data dan SLA simulasi.
+                </p>
+            </aside>
+        </section>
+
+        <section id="workflow">
+            <span class="qic-eyebrow">WORKFLOW</span>
+
+            <h2>Dari temuan sampai penyelesaian</h2>
+
+            <ol class="qic-workflow">
+                <li>
+                    <strong>01 · Pelaporan</strong>
+                    Main Assy mengirim complaint dan bukti.
+                </li>
+                <li>
+                    <strong>02 · Verifikasi</strong>
+                    Quality memeriksa dan menugaskan Auto Line.
+                </li>
+                <li>
+                    <strong>03 · Penanganan</strong>
+                    Auto Line melakukan investigasi dan respons 3C.
+                </li>
+                <li>
+                    <strong>04 · Penyelesaian</strong>
+                    Quality meninjau 3C dan memverifikasi tindakan.
+                </li>
+            </ol>
+        </section>
+
+        <section id="features">
+            <h2>Informasi yang terhubung</h2>
+
+            <div class="qic-role-cards">
+
+                <article class="qic-card">
+                    <h3>Issue tracking</h3>
+                    <p>
+                        Status, pemilik tugas, dan riwayat aktivitas
+                        dalam satu tempat.
+                    </p>
+                </article>
+
+                <article class="qic-card">
+                    <h3>Respons 3C</h3>
+                    <p>
+                        Concern, Cause, Countermeasure, evidence,
+                        dan riwayat revisi.
+                    </p>
+                </article>
+
+                <article class="qic-card">
+                    <h3>Decision support</h3>
+                    <p>
+                        Rancangan monitoring SLA dan rekomendasi AI
+                        dengan kontrol Quality.
+                    </p>
+                </article>
+
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="qic-footer">
+        QICResolve · Proyek PBL · Politeknik Negeri Batam
+    </footer>
+
+</body>
+</html>

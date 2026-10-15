@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Laravel\Fortify\Fortify;
+use App\Http\Responses\RoleBasedLoginResponse;
+use Laravel\Fortify\Contracts\LoginResponse;
 
 class FortifyServiceProvider extends ServiceProvider
 {
@@ -17,9 +19,12 @@ class FortifyServiceProvider extends ServiceProvider
      * Register any application services.
      */
     public function register(): void
-    {
-        //
-    }
+{
+    $this->app->singleton(
+        \Laravel\Fortify\Contracts\LoginResponse::class,
+        \App\Http\Responses\RoleBasedLoginResponse::class
+    );
+}
 
     /**
      * Bootstrap any application services.
