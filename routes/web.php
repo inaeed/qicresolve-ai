@@ -25,10 +25,18 @@ Route::get('/workspace', function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
 
-    // Dashboard utama hanya untuk Super Admin.
-    Route::view('/dashboard', 'dashboard')
-        ->middleware('role:project_owner')
-        ->name('dashboard');
+    // Arahkan pengguna ke dashboard sesuai role.
+Route::get('/dashboard', function () {
+    $user = auth()->user();
+
+    return match ($user->role) {
+        'main_assy' => redirect()->route('main-assy.dashboard'),
+        'auto_line' => redirect()->route('auto-line.dashboard'),
+        'quality' => redirect()->route('quality.dashboard'),
+        'project_owner' => view('dashboard'),
+        default => abort(403, 'Role pengguna tidak dikenali.'),
+    };
+})->name('dashboard');
 
     // Workspace berdasarkan role.
     foreach (config('qic_ui') as $role => $definition) {
@@ -53,7 +61,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 ->where('issue', 'QI-[0-9]+')
                 ->name($role.'.'.$key);
         }
+
+        Route::view('/'.$role.$page['path'], $viewName, [
+            'qicRole' => $role,
+            'qicPage' => $key,
+            'qicScreen' => $page['screen'],
+            'qicTitle' => $page['title'],
+        ])
+            ->where('issue', 'QI-[0-9]+')
+            ->name($role.'.'.$key);
     }
+}
 
     // Alias menuju workspace Main Assy.
     Route::redirect('/issues', '/main-assy/issues')
