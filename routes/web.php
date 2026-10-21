@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\QicIssueController;
 
 Route::view('/', 'welcome')->name('home');
 
@@ -48,17 +49,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 );
             }
 
-            Route::view('/'.$role.$page['path'], $viewName, [
-                'qicRole' => $role,
-                'qicPage' => $key,
-                'qicScreen' => $page['screen'],
-                'qicTitle' => $page['title'],
-            ])
+            Route::get('/'.$role.$page['path'], [QicIssueController::class, 'page'])
+                ->defaults('qicRole', $role)
+                ->defaults('qicPage', $key)
                 ->middleware('role:'.str_replace('-', '_', $role))
                 ->where('issue', 'QI-[0-9]+')
                 ->name($role.'.'.$key);
         }
     }
+
+    Route::post('/qic/complaints', [QicIssueController::class, 'saveComplaint'])->name('qic.complaints.store');
+    Route::post('/qic/issues/{code}/actions', [QicIssueController::class, 'action'])->where('code','QI-[0-9]+')->name('qic.issues.action');
+    Route::get('/qic/evidence/{evidence}', [QicIssueController::class, 'evidence'])->whereNumber('evidence')->name('qic.evidence.show');
 
     // Alias menuju workspace Main Assy.
     Route::redirect('/issues', '/main-assy/issues')

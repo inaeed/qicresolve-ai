@@ -1,0 +1,101 @@
+[
+  {
+    "file": "000.JPG",
+    "batch": "SIM-20261018-002",
+    "defect": "Pin konektor bengkok",
+    "description": "Pada foto tampak salah satu pin konektor tertekuk ke samping dan tidak sejajar dengan pin lainnya. Material perlu dipisahkan untuk verifikasi visual oleh Quality. Fungsi sensor belum diuji.",
+    "quantity": 1,
+    "has_3c": false,
+    "label_note": "Identitas contoh dari workbook pengguna."
+  },
+  {
+    "file": "001.JPG",
+    "batch": "SIM-20261018-001",
+    "defect": "Pin konektor bengkok",
+    "description": "Pada foto tampak pin di sisi kiri deretan konektor bengkok dan berhimpitan dengan pin di sebelahnya. Material perlu dipisahkan untuk verifikasi visual oleh Quality. Fungsi sensor belum diuji.",
+    "quantity": 3,
+    "has_3c": true,
+    "label_note": "Identitas contoh dari workbook pengguna."
+  },
+  {
+    "file": "002.JPG",
+    "batch": "SIM-20261018-003",
+    "defect": "Pin konektor bengkok",
+    "description": "Pada foto tampak pin di sisi kanan deretan konektor menyimpang ke arah luar. Material perlu dipisahkan untuk verifikasi visual oleh Quality. Fungsi sensor belum diuji.",
+    "quantity": 1,
+    "has_3c": false,
+    "label_note": "Identitas contoh dari workbook pengguna."
+  },
+  {
+    "file": "003.JPG",
+    "batch": "SIM-20261018-004",
+    "defect": "Pin konektor bengkok",
+    "description": "Pada foto tampak satu pin di sisi kanan menekuk tajam ke arah luar sehingga jarak antar-pin tidak seragam. Material perlu dipisahkan untuk verifikasi visual oleh Quality. Fungsi sensor belum diuji.",
+    "quantity": 1,
+    "has_3c": false,
+    "label_note": "Identitas contoh dari workbook pengguna."
+  },
+  {
+    "file": "004.JPG",
+    "batch": "SIM-20261018-005",
+    "defect": "Kondisi pin perlu verifikasi",
+    "description": "Pada foto hanya tampak tiga pin menjulur jelas pada area konektor; kondisi pin yang tidak terlihat perlu dikonfirmasi melalui pemeriksaan langsung. Material perlu dipisahkan untuk verifikasi visual oleh Quality. Fungsi sensor belum diuji.",
+    "quantity": 1,
+    "has_3c": false,
+    "label_note": "Identitas contoh dari workbook pengguna."
+  },
+  {
+    "file": "005.JPG",
+    "batch": "SIM-20261018-006",
+    "defect": "Pin konektor bengkok",
+    "description": "Pada foto tampak pin konektor di sisi kanan miring ke luar, tidak sejajar dengan pin di tengah. Material perlu dipisahkan untuk verifikasi visual oleh Quality. Fungsi sensor belum diuji.",
+    "quantity": 1,
+    "has_3c": false,
+    "label_note": "Batch dan bin tambahan dibuat mengikuti template kosong pengguna."
+  },
+  {
+    "file": "006.JPG",
+    "batch": "SIM-20261018-007",
+    "defect": "Pin konektor bengkok",
+    "description": "Pada foto tampak lebih dari satu pin konektor miring dengan arah berbeda dan jarak antar-pin tidak seragam. Material perlu dipisahkan untuk verifikasi visual oleh Quality. Fungsi sensor belum diuji.",
+    "quantity": 1,
+    "has_3c": false,
+    "label_note": "Batch dan bin tambahan dibuat mengikuti template kosong pengguna."
+  },
+  {
+    "file": "007.JPG",
+    "batch": "SIM-20261018-008",
+    "defect": "Pin konektor bengkok",
+    "description": "Pada foto tampak pin konektor menyimpang ke sisi kiri dan kanan dari deretan pin. Material perlu dipisahkan untuk verifikasi visual oleh Quality. Fungsi sensor belum diuji.",
+    "quantity": 1,
+    "has_3c": false,
+    "label_note": "Batch dan bin tambahan dibuat mengikuti template kosong pengguna."
+  },
+  {
+    "file": "008.JPG",
+    "batch": "SIM-20261018-009",
+    "defect": "Pin konektor bengkok",
+    "description": "Pada foto tampak pin di area tengah konektor saling menyilang dan tidak sejajar. Material perlu dipisahkan untuk verifikasi visual oleh Quality. Fungsi sensor belum diuji.",
+    "quantity": 1,
+    "has_3c": false,
+    "label_note": "Batch dan bin tambahan dibuat mengikuti template kosong pengguna."
+  },
+  {
+    "file": "009.JPG",
+    "batch": "SIM-20261018-010",
+    "defect": "Pin konektor bengkok",
+    "description": "Pada foto tampak beberapa pin konektor menekuk dan saling berhimpitan di bagian bawah modul. Material perlu dipisahkan untuk verifikasi visual oleh Quality. Fungsi sensor belum diuji.",
+    "quantity": 1,
+    "has_3c": false,
+    "label_note": "Batch dan bin tambahan dibuat mengikuti template kosong pengguna."
+  },
+  {
+    "file": "010.JPG",
+    "batch": "SIM-20261018-011",
+    "defect": "Pin konektor bengkok",
+    "description": "Pada foto tampak pin konektor bengkok dan saling menyilang pada area tengah deretan pin. Material perlu dipisahkan untuk verifikasi visual oleh Quality. Fungsi sensor belum diuji.",
+    "quantity": 1,
+    "has_3c": false,
+    "label_note": "Batch dan bin tambahan dibuat mengikuti template kosong pengguna."
+  }
+]
