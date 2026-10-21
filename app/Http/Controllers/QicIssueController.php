@@ -30,7 +30,7 @@ class QicIssueController extends Controller
         $definition = config('qic_ui')[$role]['pages'][$page];
         $issue = $request->route('issue') ? $this->findIssue($request, $request->route('issue')) : null;
         if ($issue) $issue->load(['evidence','responses.evidence','responses.author','audits.actor','reporter','owner']);
-        $query = QicIssue::visibleTo($request->user())->with(['owner','reporter'])->latest('updated_at')->latest('id');
+        $query = QicIssue::visibleTo($request->user())->with(['owner','reporter','responses','audits.actor'])->latest('updated_at')->latest('id');
         if ($request->filled('search')) {
             $search = '%'.$request->string('search').'%';
             $query->where(fn ($q) => $q->where('code','like',$search)->orWhere('material','like',$search)->orWhere('description','like',$search));
@@ -39,6 +39,11 @@ class QicIssueController extends Controller
         if ($page === 'reviews.index') $query->where('status','waiting_review');
         if ($page === 'assignments') $query->where('status','verified');
         $all = $query->get();
+        // Dashboard totals use the complete authorized scope, independent of list filters.
+        $overview = QicIssue::visibleTo($request->user())->with(['owner','reporter','responses'])->latest('updated_at')->latest('id')->get();
+        if ($role === 'auto-line' && $page === 'responses.index') $all = $all->filter(fn ($row) => $row->responses->isNotEmpty() || in_array($row->status, ['investigation','revision_requested','three_c_rejected']));
+        if ($role === 'auto-line' && $page === 'history') $all = $all->whereIn('status', ['closed','rejected']);
+        $activity = \App\Models\QicAudit::whereIn('issue_id', $overview->pluck('id'))->with(['actor','issue'])->latest('id')->get();
         $form = $page === 'issues.create' || $page === 'issues.edit';
         if ($form) {
             abort_unless($role === 'main-assy', 403);
@@ -47,7 +52,7 @@ class QicIssueController extends Controller
         return view('qic-server.workspace', [
             'qicRole'=>$role,'qicPage'=>$page,'qicScreen'=>$definition['screen'],
             'qicTitle'=>$definition['title'], 'serverBacked'=>true,
-            'issue'=>$issue,'records'=>$all,'showForm'=>$form,
+            'issue'=>$issue,'records'=>$all,'overview'=>$overview,'activity'=>$activity,'showForm'=>$form,
             'owners'=>User::where('role','auto_line')->orderBy('name')->get(),
             'statuses'=>config('qic_status'),
         ]);
