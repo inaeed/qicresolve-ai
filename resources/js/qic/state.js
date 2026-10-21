@@ -31,44 +31,23 @@ function sampleVersion(n = 1, decision = null) {
         review: decision ? { decision, reason: 'Rencana perbaikan dan evidence simulasi sudah sesuai.', at: fixedDate } : null,
     };
 }
+// Mulai kosong agar complaint diisi dengan foto VisA dan metadata simulasi sendiri.
 export function seedState() {
-    const cases = [
-        ['QI-001', 'Housing A', 'waiting_verification', null, 'Tinggi', 27],
-        ['QI-002', 'Bracket B', 'need_information', null, 'Normal', 40],
-        ['QI-003', 'Cover C', 'assigned', 'Auto Line 1', 'Tinggi', 49],
-        ['QI-004', 'Housing D', 'waiting_review', 'Auto Line 1', 'Normal', 12],
-        ['QI-005', 'Connector E', 'approved', 'Auto Line 2', 'Normal', 30],
-        ['QI-006', 'Housing F', 'waiting_final', 'Auto Line 2', 'Normal', 36],
-        ['QI-007', 'Cover G', 'closed', 'Auto Line 1', 'Normal', 20],
-    ];
     return {
-        schema: SCHEMA, counter: 8, profiles: {}, read: [], notices: [],
+        schema: SCHEMA, counter: 1, profiles: {}, read: [], notices: [],
         master: [
-            { id: 'M-01', category: 'Material', name: 'Housing A', active: true },
-            { id: 'M-02', category: 'Defect', name: 'Goresan', active: true },
-            { id: 'M-03', category: 'Process Owner', name: 'Auto Line 1', active: true },
-            { id: 'M-04', category: 'Process Owner', name: 'Auto Line 2', active: true },
+            {id:'M-01',category:'Process Owner',name:'Auto Line 1',active:true},
+            {id:'M-02',category:'Process Owner',name:'Auto Line 2',active:true},
         ],
-        issues: cases.map(([id, material, status, owner, priority, elapsed]) => ({
-            id, material, status, owner, priority, quantity: 5, defect: 'Goresan',
-            description: `Temuan simulasi pada ${material}; periksa kondisi permukaan dan identitas material.`,
-            occurredAt: '2026-10-01T08:00', createdAt: fixedDate, updatedAt: fixedDate,
-            reporter: 'Main Assy Leader', photos: { defect: 'defect-simulasi.jpg', label: 'label-simulasi.jpg' },
-            investigation: owner ? 'Contoh: pemeriksaan visual pada sampel dan peninjauan tray material.' : '',
-            containment: owner ? 'Contoh: pisahkan material dan lakukan pemeriksaan ulang.' : '',
-            investigationEvidence: owner ? ['hasil-pemeriksaan-simulasi.pdf'] : [],
-            versions: ['waiting_review', 'approved', 'waiting_final', 'closed'].includes(status)
-                ? [sampleVersion(1, status === 'waiting_review' ? null : 'approve')] : [],
-            responseDraft: null,
-            corrective: ['waiting_final', 'closed'].includes(status) ? {
-                action: 'Separator tray diterapkan dan material diperiksa ulang (simulasi).',
-                result: 'Contoh hasil: sampel yang diperiksa memenuhi kriteria visual.',
-                evidence: ['bukti-tindakan-simulasi.jpg'], submittedAt: fixedDate,
-            } : null,
-            sla: { stage: 'Pengajuan 3C pertama', target: 48, elapsed, snapshot: 'Snapshot data contoh, bukan penghitungan real-time' },
-            audit: [{ id: `${id}-seed`, at: fixedDate, actor: 'Dataset simulasi', action: 'Memuat contoh kasus', note: `Status awal: ${STATUS[status]}`, to: status }],
-        })),
+        issues: [],
     };
+}
+// Urutkan salinan, agar data asli tidak berubah hanya karena ditampilkan.
+export function newestIssues(records) {
+    const stamp = issue => Math.max(Date.parse(issue.updatedAt) || 0, Date.parse(issue.createdAt) || 0);
+    return [...records].sort((a,b) => stamp(b)-stamp(a)
+        || (Date.parse(b.createdAt)||0)-(Date.parse(a.createdAt)||0)
+        || Number(b.id.split('-')[1])-Number(a.id.split('-')[1]));
 }
 const rules = {
     verify: ['quality', ['waiting_verification'], 'verified'],
@@ -182,10 +161,10 @@ export function createStore(storage, userId) {
         if (raw) {
             const value = JSON.parse(raw);
             if (value.schema === SCHEMA && value.profiles && typeof value.profiles === 'object' && Array.isArray(value.issues) && Array.isArray(value.master) && Array.isArray(value.read) && Number.isInteger(value.counter) && value.counter > 0 && value.issues.every(i => STATUS[i.status] && /^QI-\d+$/.test(i.id) && Array.isArray(i.audit) && Array.isArray(i.versions))) state = value;
-            else warning = 'Data demo lama tidak cocok; dataset contoh dimuat ulang.';
+            else warning = 'Data demo lama tidak cocok; daftar issue kosong dimuat.';
         }
         if (!storage) warning = 'Penyimpanan tab tidak tersedia; perubahan hanya berlaku selama halaman ini dibuka.';
-    } catch { warning = 'Data demo tidak dapat dibaca; dataset contoh dimuat. Periksa izin penyimpanan browser.'; }
+    } catch { warning = 'Data demo tidak dapat dibaca; daftar issue kosong dimuat. Periksa izin penyimpanan browser.'; }
     return {
         get: () => state, warning: () => warning,
         save(next) {
@@ -193,6 +172,9 @@ export function createStore(storage, userId) {
             catch { warning = 'Perubahan hanya di memori halaman ini; penyimpanan tab gagal. Berpindah halaman dapat menghilangkan perubahan.'; }
             state = next;
         },
-        reset() { const next = seedState(); this.save(next); },
+        reset() {
+            // Hapus transaksi issue tanpa menghapus profil dan master pengguna.
+            this.save({...state, issues:[], counter:1, read:[], notices:[]});
+        },
     };
 }

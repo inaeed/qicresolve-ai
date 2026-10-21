@@ -1,4 +1,4 @@
-import { STATUS, ROLE, TERMINAL, ACTION, canAct, transition, createIssue, scopedIssues, createStore, photoError, fileError } from './state.js';
+import { STATUS, ROLE, TERMINAL, ACTION, canAct, transition, createIssue, scopedIssues, newestIssues, createStore, photoError, fileError } from './state.js';
 import { downloadWorkbook } from './export.js';
 
 // User-entered text is always inserted through textContent, never interpolated into HTML.
@@ -18,7 +18,16 @@ function el(tag, attrs = {}, children = []) {
 const text = (value, cls='') => el('p',{text:value,class:cls});
 const button = (label, action, cls='') => el('button',{type:'button',class:`qic-button ${cls}`,text:label,onclick:action});
 const anchor = (label, href, cls='') => el('a',{href,text:label,class:cls});
-const badge = issue => el('span',{class:`qic-badge ${issue.status === 'closed' ? 'success' : ['rejected','three_c_rejected','cancelled'].includes(issue.status) ? 'danger' : ['need_information','revision_requested','waiting_final'].includes(issue.status) ? 'warning' : 'info'}`,text:STATUS[issue.status]});
+// Warna status: menunggu/perlu tindak lanjut kuning, ditolak merah,
+// selesai/disetujui hijau, proses aktif biru, draft/batal abu-abu.
+const statusTone = status => {
+    if (['rejected','three_c_rejected'].includes(status)) return 'danger';
+    if (['waiting_verification','need_information','waiting_review','revision_requested','waiting_final'].includes(status)) return 'warning';
+    if (['verified','approved','closed'].includes(status)) return 'success';
+    if (['draft','cancelled'].includes(status)) return 'neutral';
+    return 'info';
+};
+const badge = issue => el('span',{class:`qic-badge ${statusTone(issue.status)}`,text:STATUS[issue.status]});
 const time = value => value ? new Date(value).toLocaleString('id-ID',{dateStyle:'medium',timeStyle:'short'}) : '—';
 const card = (title,...children) => el('section',{class:'qic-card'},[el('h2',{text:title}),children]);
 const empty = (message='Belum ada data untuk ditampilkan.') => el('div',{class:'qic-empty'},[el('strong',{text:'Tidak ada data'}),text(message)]);
@@ -47,14 +56,88 @@ function table(headers, rows) {
     const t=el('table',{},[el('thead',{},el('tr',{},headers.map(h=>el('th',{scope:'col',text:h})))),el('tbody',{},rows.map(row=>el('tr',{},row.map(c=>el('td',{},c)))))]);
     return el('div',{class:'qic-table-scroll',tabindex:'0',role:'region','aria-label':'Tabel data, dapat digeser horizontal'},t);
 }
+
+// Menyimpan foto demo pada browser yang sama.
+const PHOTO_PREFIX = 'qic-photo:';
+
+function photoName(value) {
+    if (!value?.startsWith(PHOTO_PREFIX)) return value || '';
+
+    try {
+        return decodeURIComponent(value.split(':').slice(2).join(':'));
+    } catch {
+        return 'Foto';
+    }
+}
+
+function openPhotoDatabase() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open('qicresolve-photos', 1);
+
+        request.onupgradeneeded = () => {
+            request.result.createObjectStore('photos');
+        };
+
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+}
+
+async function photoStorage(mode, action) {
+    const db = await openPhotoDatabase();
+
+    try {
+        return await new Promise((resolve, reject) => {
+            const transaction = db.transaction('photos', mode);
+            const request = action(transaction.objectStore('photos'));
+
+            transaction.oncomplete = () => resolve(request.result);
+            transaction.onerror = () => reject(transaction.error);
+            transaction.onabort = () => reject(
+                transaction.error || new Error('Penyimpanan foto dibatalkan.')
+            );
+        });
+    } finally {
+        db.close();
+    }
+}
+
+async function savePhoto(file) {
+    const id = crypto.randomUUID();
+
+    await photoStorage('readwrite', store => store.put(file, id));
+
+    return `${PHOTO_PREFIX}${id}:${encodeURIComponent(file.name)}`;
+}
+
+async function loadPhoto(reference) {
+    if (!reference?.startsWith(PHOTO_PREFIX)) return null;
+
+    const id = reference.split(':')[1];
+
+    return photoStorage('readonly', store => store.get(id));
+}
+
 function init(){
+    if (document.getElementById('qic-server-root')) {
+        const menu=document.querySelector('[data-menu]');
+        if(menu && !menu.dataset.serverReady){
+            menu.dataset.serverReady='true';
+            menu.addEventListener('click',()=>{
+                const open=document.getElementById('qic-sidebar').classList.toggle('is-open');
+                menu.setAttribute('aria-expanded',String(open));
+            });
+        }
+        return; // Halaman server tidak boleh memuat atau menimpa state demo browser.
+    }
+
     const bootNode=document.getElementById('qic-boot');if(!bootNode||bootNode.dataset.ready)return;bootNode.dataset.ready='true';
     const boot=JSON.parse(bootNode.textContent);let storage=null;try{storage=window.sessionStorage;}catch{}
     const store=createStore(storage,boot.user.id), role=boot.role, content=document.getElementById('qic-content');
     const modal=document.getElementById('qic-modal'),modalBody=document.getElementById('qic-modal-body');
     let cleanup=[];
     const url=(page,id=null,r=role)=>{const pattern=boot.links[r]?.[page];if(!pattern)throw new Error(`Rute belum tersedia: ${r}.${page}`);return pattern.replace('__ISSUE__',encodeURIComponent(id??''));};
-    const issues=()=>scopedIssues(store.get(),role);
+    const issues=()=>newestIssues(scopedIssues(store.get(),role));
     const lookup=id=>issues().find(i=>i.id===id);
     const warn=()=>{const n=document.getElementById('qic-storage-warning');n.textContent=store.warning();n.hidden=!store.warning();};
     const toast=(message,error=false)=>{const n=document.getElementById('qic-toast');n.textContent=message;n.classList.toggle('error',error);n.hidden=false;n.focus();};
@@ -117,15 +200,82 @@ function init(){
         if(role==='main-assy')document.getElementById('qic-page-actions').append(anchor('+ Buat Complaint',url('issues.create'),'qic-button'));
         const focus=all.filter(i=>role==='quality'?['waiting_verification','waiting_review','waiting_final','verified'].includes(i.status):role==='auto-line'?!TERMINAL.includes(i.status):['need_information','draft'].includes(i.status));
         content.append(card('Prioritas Tindak Lanjut',focus.length?issueTable(focus):empty('Seluruh antrean telah ditangani.')));
-        content.append(card('Issue Terbaru',issueTable([...all].reverse().slice(0,5))));
+        content.append(card('Semua Issue · Terbaru di Atas',issueTable(all)));
         const logs=all.flatMap(i=>i.audit.map(a=>({...a,issue:i.id}))).sort((a,b)=>b.at.localeCompare(a.at)).slice(0,4);
         content.append(card('Aktivitas Terbaru',timeline(logs)));
     }
     function timeline(logs){return logs.length?el('ol',{class:'qic-timeline'},logs.map(a=>el('li',{},[el('strong',{text:`${a.issue?a.issue+' · ':''}${a.action}`}),text(`${a.actor} · ${time(a.at)}`,'qic-small qic-muted'),a.note?text(a.note):null,a.to?text(STATUS[a.to],'qic-small'):null]))):empty('Riwayat belum tersedia.');}
-    function evidence(names,label='Evidence'){
-        const list=Array.isArray(names)?names:Object.values(names||{}).filter(Boolean);
-        return card(label,list.length?el('ul',{class:'qic-evidence-list'},list.map(n=>el('li',{},[el('span',{text:n}),button('Info berkas',()=>openModal('Evidence Demonstrasi',text(`Nama berkas: ${n}. File contoh atau metadata ini tidak tersimpan di server. Isi berkas tidak tersedia setelah berpindah halaman.`)),'qic-small-button qic-secondary')]))):empty('Belum ada evidence.'),text('Demo menyimpan nama berkas saja; jangan gunakan data perusahaan rahasia.','qic-small qic-muted'));
+function evidence(names, label = 'Evidence') {
+    const list = (
+        Array.isArray(names) ? names : Object.values(names || {})
+    ).filter(Boolean);
+
+    async function showPhoto(reference) {
+        const body = el('div', {}, [
+            text(photoName(reference), 'qic-small'),
+            text('Memuat foto...')
+        ]);
+
+        openModal('Bukti Pelaporan', body);
+
+        try {
+            const file = await loadPhoto(reference);
+
+            // Jangan menampilkan hasil jika modal sudah ditutup/diganti.
+            if (!modal.open || !modalBody.contains(body)) return;
+
+            body.replaceChildren(
+                text(photoName(reference), 'qic-small')
+            );
+
+            if (!file) {
+                body.append(text(
+                    'Foto tidak tersedia. Data lama hanya menyimpan nama ' +
+                    'berkas. Unggah ulang melalui form complaint.'
+                ));
+                return;
+            }
+
+            const src = URL.createObjectURL(file);
+
+            body.append(el('img', {
+                src,
+                alt: photoName(reference),
+                style: 'display:block;max-width:100%;max-height:70vh;' +
+                       'object-fit:contain;margin:auto;'
+            }));
+
+            cleanup.push(() => URL.revokeObjectURL(src));
+        } catch {
+            if (modal.open && modalBody.contains(body)) {
+                body.replaceChildren(text(
+                    'Foto gagal dibaca dari penyimpanan browser.',
+                    'qic-error'
+                ));
+            }
+        }
     }
+
+    return card(
+        label,
+        list.length
+            ? el('ul', { class: 'qic-evidence-list' },
+                list.map(reference => el('li', {}, [
+                    el('span', { text: photoName(reference) }),
+                    button(
+                        'Lihat berkas',
+                        () => showPhoto(reference),
+                        'qic-small-button qic-secondary'
+                    )
+                ]))
+            )
+            : empty('Belum ada evidence.'),
+        text(
+            'Foto demo tersimpan pada browser ini.',
+            'qic-small qic-muted'
+        )
+    );
+}
     function summary(issue){
         return card(issue.id+' · '+issue.material,el('div',{class:'qic-status-row'},[badge(issue),text(issue.priority+' priority','qic-small')]),text(issue.description),el('dl',{class:'qic-details'},[
             el('dt',{text:'Pelapor'}),el('dd',{text:issue.reporter}),el('dt',{text:'Pemilik proses'}),el('dd',{text:issue.owner||'Belum ditugaskan'}),el('dt',{text:'Jumlah reject'}),el('dd',{text:issue.quantity+' pcs'}),el('dt',{text:'Jenis defect'}),el('dd',{text:issue.defect}),el('dt',{text:'Kejadian'}),el('dd',{text:time(issue.occurredAt)}),
@@ -138,40 +288,236 @@ function init(){
         if(issue.corrective)content.append(card('Tindakan Korektif',text(issue.corrective.action),text(issue.corrective.result||'Hasil belum dicatat.')),evidence(issue.corrective.evidence,'Bukti Tindakan'));
         content.append(card('Riwayat Issue',timeline(issue.audit)));
     }
-    function photoPicker(current,onSave){
-        const draft={...current},uploads=el('div',{class:'qic-upload-grid'});
-        const objectUrls=[];
-        for(const [key,label] of [['defect','Foto Defect'],['label','Foto Label Material']]){
-            const input=el('input',{type:'file',accept:'image/jpeg,image/png,image/webp',id:`photo-${key}`}),preview=el('img',{class:'qic-photo',alt:`Pratinjau ${label}`,hidden:true}),error=el('p',{class:'qic-error',role:'alert'}),name=text(draft[key]||'Belum dipilih','qic-small qic-muted');
-            input.addEventListener('change',()=>{
-                const file=input.files[0];if(!file)return;
-                const problem=photoError(file);error.textContent=problem;
-                if(problem){draft[key]=null;input.value='';preview.hidden=true;preview.removeAttribute('src');name.textContent='Belum dipilih';return;}
-                draft[key]=file.name;name.textContent=file.name;const src=URL.createObjectURL(file);objectUrls.push(src);preview.src=src;preview.hidden=false;
-            });
-            uploads.append(el('section',{class:'qic-upload'},[el('label',{for:`photo-${key}`,text:label}),text(key==='defect'?'Area defect harus terlihat jelas.':'Kode material harus dapat dibaca.','qic-small'),input,name,error,preview]));
-        }
-        const body=el('div',{},[text('JPEG, PNG, WebP; maksimal 5 MiB/foto. Pratinjau hanya tersedia saat modal ini dibuka.'),uploads,el('div',{class:'qic-actions'},[button('Batal',closeModal,'qic-secondary'),button('Lampirkan Foto',()=>{if(!draft.defect||!draft.label){modalError('Pilih foto defect dan label material.');return;}onSave(draft);closeModal();})])]);
-        openModal('Upload Issue Evidence',body);cleanup.push(()=>objectUrls.forEach(u=>URL.revokeObjectURL(u)));
+function photoPicker(current, onSave) {
+    const draft = { ...current };
+    const selected = {};
+    const objectUrls = [];
+    const uploads = el('div', { class: 'qic-upload-grid' });
+
+    let saving = false;
+
+    for (const [key, label] of [
+        ['defect', 'Foto Defect'],
+        ['label', 'Foto Label Material']
+    ]) {
+        const input = el('input', {
+            type: 'file',
+            accept: 'image/jpeg,image/png,image/webp',
+            id: `photo-${key}`
+        });
+
+        const preview = el('img', {
+            class: 'qic-photo',
+            alt: `Pratinjau ${label}`,
+            hidden: true
+        });
+
+        const error = el('p', {
+            class: 'qic-error',
+            role: 'alert'
+        });
+
+        const name = text(
+            photoName(draft[key]) || 'Belum dipilih',
+            'qic-small qic-muted'
+        );
+
+        input.addEventListener('change', () => {
+            const file = input.files[0];
+            if (!file) return;
+
+            const problem = photoError(file);
+            error.textContent = problem;
+
+            if (problem) {
+                input.value = '';
+                return;
+            }
+
+            selected[key] = file;
+            name.textContent = file.name;
+
+            const src = URL.createObjectURL(file);
+            objectUrls.push(src);
+
+            preview.src = src;
+            preview.hidden = false;
+        });
+
+        uploads.append(el('section', { class: 'qic-upload' }, [
+            el('label', { for: `photo-${key}`, text: label }),
+            input,
+            name,
+            error,
+            preview
+        ]));
     }
+
+    const attach = button('Lampirkan Foto', async () => {
+        if (saving) return;
+
+        // Nama berkas lama belum memiliki foto tersimpan.
+        for (const key of ['defect', 'label']) {
+            if (!selected[key] &&
+                !draft[key]?.startsWith(PHOTO_PREFIX)) {
+                modalError('Pilih foto defect dan label material.');
+                return;
+            }
+        }
+
+        saving = true;
+        attach.disabled = true;
+        cancel.disabled = true;
+        modal.querySelector('[data-close-modal]').disabled = true;
+        modal.addEventListener('cancel', preventCancel);
+
+        uploads.querySelectorAll('input').forEach(input => {
+            input.disabled = true;
+        });
+
+        try {
+            for (const [key, file] of Object.entries(selected)) {
+                draft[key] = await savePhoto(file);
+            }
+
+            onSave(draft);
+            closeModal();
+        } catch {
+            modalError(
+                'Foto gagal disimpan. Periksa izin atau ruang ' +
+                'penyimpanan browser, lalu coba lagi.'
+            );
+        } finally {
+            saving = false;
+            attach.disabled = false;
+            cancel.disabled = false;
+            modal.querySelector('[data-close-modal]').disabled = false;
+            modal.removeEventListener('cancel', preventCancel);
+
+            uploads.querySelectorAll('input').forEach(input => {
+                input.disabled = false;
+            });
+        }
+    });
+
+    function preventCancel(event) {
+        event.preventDefault();
+    }
+
+    const cancel = button('Batal', closeModal, 'qic-secondary');
+
+    openModal('Upload Issue Evidence', el('div', {}, [
+        text('JPEG, PNG, WebP; maksimal 5 MiB/foto.'),
+        uploads,
+        el('div', { class: 'qic-actions' }, [cancel, attach])
+    ]));
+
+    cleanup.push(() => {
+        objectUrls.forEach(src => URL.revokeObjectURL(src));
+    });
+}
     function complaintForm(issue=null){
         if(issue&&!canAct(issue,role,'edit')){content.append(card('Complaint tidak dapat diubah',text('Hanya draft dan complaint yang diminta kelengkapannya dapat diedit oleh Main Assy.'),anchor('Lihat detail',url('issues.show',issue.id))));return;}
         let photos={...(issue?.photos||{})};
+        // Pilihan defect dan nilai awal saat mengedit complaint.
+    const defectChoices = [
+        '',
+        'Goresan',
+        'Dimensi tidak sesuai',
+        'Penyok',
+        'Lainnya',
+    ];
+
+    const savedDefect = issue?.defect || '';
+    const isCustomDefect =
+        savedDefect !== '' && !defectChoices.includes(savedDefect);
         const f=formFields([
             ['Material / Part Number','material',issue?.material,'text',{required:true}],['Tanggal dan waktu kejadian','occurredAt',issue?.occurredAt||'','datetime-local',{required:true}],
-            ['Jenis defect','defect',issue?.defect||'','select',{choices:['','Goresan','Dimensi tidak sesuai','Penyok','Lainnya'],required:true}],
+            ['Jenis defect','defect',isCustomDefect ? 'Lainnya' : savedDefect,'select',{ choices: defectChoices, required: true },],
             ['Jumlah reject','quantity',issue?.quantity||1,'number',{required:true}],['Prioritas','priority',issue?.priority||'Normal','select',{choices:['Normal','Tinggi']}],
             ['Deskripsi temuan','description',issue?.description||'','textarea',{required:true}],
         ]);
-        const names=text(Object.values(photos).filter(Boolean).join(' · ')||'Belum ada foto terpilih.','qic-small');
-        f.form.append(card('Bukti Pelaporan',names,button('Pilih / Ganti Foto',()=>photoPicker(photos,value=>{photos=value;names.textContent=Object.values(value).join(' · ');}),'qic-secondary')));
+        // Kolom manual untuk pilihan Lainnya.
+const otherDefect = field(
+    'Jenis defect lainnya',
+    'otherDefect',
+    isCustomDefect ? savedDefect : '',
+    'text',
+    { help: 'Contoh: Pin konektor bengkok' }
+);
+
+otherDefect.input.maxLength = 100;
+
+// Letakkan tepat setelah dropdown Jenis defect.
+f.inputs.defect
+    .closest('.qic-field')
+    .after(otherDefect.wrapper);
+
+const toggleOtherDefect = () => {
+    const show = f.inputs.defect.value === 'Lainnya';
+
+    otherDefect.wrapper.hidden = !show;
+    otherDefect.input.disabled = !show;
+    otherDefect.input.required = show;
+    otherDefect.input.setCustomValidity('');
+};
+
+otherDefect.input.addEventListener('input', () => {
+    otherDefect.input.setCustomValidity('');
+});
+
+f.inputs.defect.addEventListener('change', toggleOtherDefect);
+toggleOtherDefect();
+
+const selectedPhotoNames = value =>
+    Object.values(value)
+        .filter(Boolean)
+        .map(photoName)
+        .join(' · ') || 'Belum ada foto terpilih.';
+
+const names = text(selectedPhotoNames(photos), 'qic-small');
+
+f.form.append(card(
+    'Bukti Pelaporan',
+    names,
+    button('Pilih / Ganti Foto', () => {
+        photoPicker(photos, value => {
+            photos = value;
+            names.textContent = selectedPhotoNames(value);
+        });
+    }, 'qic-secondary')
+));
         const result=el('p',{class:'qic-error',role:'alert',tabindex:'-1',hidden:true});f.form.append(result);
         const save=submit=>{
-            if(submit&&!f.form.reportValidity())return;
-            try{
-                const values={...f.values(),quantity:Number(f.inputs.quantity.value),photos};
+            const selectedDefect = f.inputs.defect.value;
+const customDefect = otherDefect.input.value.trim();
+
+// Cegah Lainnya disimpan tanpa keterangan, termasuk pada draft.
+otherDefect.input.setCustomValidity(
+    selectedDefect === 'Lainnya' && !customDefect
+        ? 'Tuliskan jenis defect lainnya.'
+        : ''
+);
+
+if (selectedDefect === 'Lainnya' &&
+    !otherDefect.input.reportValidity()) {
+    return;
+}
+
+if (submit && !f.form.reportValidity()) return;
+
+try {
+    const values = {
+        ...f.values(),
+        defect: selectedDefect === 'Lainnya'
+            ? customDefect
+            : selectedDefect,
+        quantity: Number(f.inputs.quantity.value),
+        photos,
+    };
+
                 if(issue) {act(issue.id,submit?'submit':'edit',values);content.replaceChildren(card('Complaint Diperbarui',text('Perubahan tersimpan pada demo tab ini.'),anchor('Buka issue',url('issues.show',issue.id),'qic-button')));}
-                else {const next=structuredClone(store.get());const created=createIssue(next,values,submit);next.counter++;next.issues.push(created);persist(next);content.replaceChildren(card(submit?'Complaint Dikirim':'Draft Disimpan',text(`${created.id} tersimpan pada data demo tab ini. Foto hanya dicatat sebagai nama berkas.`),anchor('Buka issue',url('issues.show',created.id),'qic-button')));toast('Data demo berhasil diperbarui.');}
+                else {const next=structuredClone(store.get());const created=createIssue(next,values,submit);next.counter++;next.issues.push(created);persist(next);content.replaceChildren(card(submit?'Complaint Dikirim':'Draft Disimpan',text(`${created.id} tersimpan pada data demo tab ini. Foto demo tersimpan pada browser ini.`),anchor('Buka issue',url('issues.show',created.id),'qic-button')));toast('Data demo berhasil diperbarui.');}
             }catch(e){result.hidden=false;result.textContent=e.message;result.focus();}
         };
         f.form.append(el('div',{class:'qic-actions'},[anchor('Kembali',url('issues.index'),'qic-button qic-secondary'),button(issue?'Simpan Perubahan':'Simpan Draft',()=>save(false),'qic-secondary'),el('button',{type:'submit',class:'qic-button',text:issue?'Kirim Ulang Complaint':'Kirim Complaint (Demo)'})]));
@@ -350,7 +696,7 @@ function init(){
         }
     }
     document.querySelector('[data-menu]')?.addEventListener('click',e=>{const open=document.getElementById('qic-sidebar').classList.toggle('is-open');e.currentTarget.setAttribute('aria-expanded',String(open));});
-    document.querySelector('[data-reset]')?.addEventListener('click',()=>openModal('Reset Data Demonstrasi',el('div',{},[text('Semua complaint, revisi 3C, profil demo, dan perubahan master pada tab ini akan dikembalikan ke data contoh. Akun serta database Laravel tidak terpengaruh.'),el('div',{class:'qic-actions'},[button('Batal',closeModal,'qic-secondary'),button('Reset Demo',()=>{store.reset();closeModal();render();toast('Data demonstrasi dikembalikan ke kondisi awal.');})])])));
+    document.querySelector('[data-reset]')?.addEventListener('click',()=>openModal('Hapus Semua Issue',el('div',{},[text('Semua issue, foto terkait yang tercatat, respons 3C, dan riwayat issue pada akun demo di tab ini akan dihapus. Profil dan master pengguna tetap disimpan. Daftar akan kosong dan nomor issue dimulai lagi dari QI-001. Tindakan ini tidak dapat dibatalkan.'),el('div',{class:'qic-actions'},[button('Batal',closeModal,'qic-secondary'),button('Hapus Semua Issue',()=>{store.reset();closeModal();render();toast('Semua issue dihapus. Daftar siap diisi dengan dataset VisA.');})])])));
     window.addEventListener('pagehide',()=>{cleanup.forEach(f=>f());cleanup=[];});
     render();
 }
