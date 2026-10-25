@@ -164,8 +164,8 @@ class QicEvidenceDatabaseTest extends TestCase
         $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j2b0AAAAASUVORK5CYII=');
         $this->actingAs($owner)->post($url, ['workspace' => 'auto-line', 'action' => 'corrective', 'corrective_action' => 'Pengujian tindakan', 'corrective_result' => 'Hasil simulasi', 'evidence' => [UploadedFile::fake()->createWithContent('hasil.png', $png)]])->assertRedirect();
         $this->actingAs($quality)->post($url, ['workspace' => 'quality', 'action' => 'close', 'note' => 'Hasil simulasi diperiksa'])->assertRedirect();
-        $this->assertSame('closed',$issue->fresh()->status);
-        $this->assertDatabaseCount('qic_audits',8);
-        $this->assertSame('corrective',$issue->evidence()->first()->category);
+        $this->assertSame('closed', $issue->fresh()->status);
+        $this->assertDatabaseCount('qic_audits', 8);
+        $this->assertSame('corrective', $issue->evidence()->first()->category);
     }
 }
