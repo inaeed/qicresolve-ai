@@ -1,0 +1,4 @@
+<div class="qic-role-intro"><h2>Respons 3C</h2><p>Susun respons untuk issue dalam investigasi atau lihat versi yang telah dikirim. Evidence tetap terhubung pada versi masing-masing.</p></div>
+<div class="qic-menu-grid">@forelse($records as $row)<article class="qic-card"><span class="qic-badge {{ $statuses[$row->status][1] }}">{{ $statuses[$row->status][0] }}</span><h3>{{ $row->code }} · {{ $row->material }}</h3><p>{{ $row->defect }}</p><p>{{ $row->responses->count() }} versi tersimpan</p>
+@if(in_array($row->status,['investigation','revision_requested','three_c_rejected']))<a class="qic-button" href="{{ route('auto-line.responses.create',['issue'=>$row->code]) }}">Susun / Revisi 3C</a>@else<a class="qic-button qic-secondary" href="{{ route('auto-line.responses.show',['issue'=>$row->code]) }}">Lihat Respons 3C</a>@endif
+</article>@empty<p class="qic-card">Belum ada issue yang siap dibuatkan respons atau memiliki versi 3C.</p>@endforelse</div>

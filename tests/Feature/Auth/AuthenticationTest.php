@@ -9,8 +9,8 @@ test('login screen can be rendered', function () {
     $response->assertOk();
 });
 
-test('users can authenticate using the login screen', function () {
-    $user = User::factory()->create();
+test('users can authenticate and reach the dashboard for their role', function (string $role, string $dashboardRoute) {
+    $user = User::factory()->create(['role' => $role]);
 
     $response = $this->post(route('login.store'), [
         'email' => $user->email,
@@ -19,10 +19,15 @@ test('users can authenticate using the login screen', function () {
 
     $response
         ->assertSessionHasNoErrors()
-        ->assertRedirect(route('dashboard', absolute: false));
+        ->assertRedirect(route($dashboardRoute));
 
-    $this->assertAuthenticated();
-});
+    $this->assertAuthenticatedAs($user);
+})->with([
+    'Main Assy' => ['main_assy', 'main-assy.dashboard'],
+    'Auto Line' => ['auto_line', 'auto-line.dashboard'],
+    'Quality' => ['quality', 'quality.dashboard'],
+    'Project Owner' => ['project_owner', 'dashboard'],
+]);
 
 test('users can not authenticate with invalid password', function () {
     $user = User::factory()->create();

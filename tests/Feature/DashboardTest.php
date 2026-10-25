@@ -7,10 +7,29 @@ test('guests are redirected to the login page', function () {
     $response->assertRedirect(route('login'));
 });
 
-test('authenticated users can visit the dashboard', function () {
-    $user = User::factory()->create();
-    $this->actingAs($user);
+test('project owner can view the workspace selection dashboard', function () {
+    $user = User::factory()->create([
+        'role' => 'project_owner',
+    ]);
 
-    $response = $this->get(route('dashboard'));
-    $response->assertOk();
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertOk();
 });
+
+test('users are redirected to their role dashboard', function (
+    string $role,
+    string $dashboardRoute
+) {
+    $user = User::factory()->create([
+        'role' => $role,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertRedirect(route($dashboardRoute));
+})->with([
+    'Main Assy' => ['main_assy', 'main-assy.dashboard'],
+    'Auto Line' => ['auto_line', 'auto-line.dashboard'],
+    'Quality' => ['quality', 'quality.dashboard'],
+]);
