@@ -1,7 +1,7 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\QicIssueController;
+use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
 
@@ -44,7 +44,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             $viewName = $role.'.'.$key;
 
             if (! view()->exists($viewName)) {
-                throw new \LogicException(
+                throw new LogicException(
                     "View QICResolve tidak ditemukan: {$viewName}"
                 );
             }
@@ -59,7 +59,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     }
 
     Route::post('/qic/complaints', [QicIssueController::class, 'saveComplaint'])->name('qic.complaints.store');
-    Route::post('/qic/issues/{code}/actions', [QicIssueController::class, 'action'])->where('code','QI-[0-9]+')->name('qic.issues.action');
+    Route::post('/qic/issues/{code}/actions', [QicIssueController::class, 'action'])->where('code', 'QI-[0-9]+')->name('qic.issues.action');
     Route::get('/qic/evidence/{evidence}', [QicIssueController::class, 'evidence'])->whereNumber('evidence')->name('qic.evidence.show');
 
     // Alias menuju workspace Main Assy.

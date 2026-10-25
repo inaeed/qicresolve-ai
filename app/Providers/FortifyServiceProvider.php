@@ -4,14 +4,14 @@ namespace App\Providers;
 
 use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
+use App\Http\Responses\RoleBasedLoginResponse;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
-use Laravel\Fortify\Fortify;
-use App\Http\Responses\RoleBasedLoginResponse;
 use Laravel\Fortify\Contracts\LoginResponse;
+use Laravel\Fortify\Fortify;
 
 class FortifyServiceProvider extends ServiceProvider
 {
@@ -19,12 +19,12 @@ class FortifyServiceProvider extends ServiceProvider
      * Register any application services.
      */
     public function register(): void
-{
-    $this->app->singleton(
-        \Laravel\Fortify\Contracts\LoginResponse::class,
-        \App\Http\Responses\RoleBasedLoginResponse::class
-    );
-}
+    {
+        $this->app->singleton(
+            LoginResponse::class,
+            RoleBasedLoginResponse::class
+        );
+    }
 
     /**
      * Bootstrap any application services.

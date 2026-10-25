@@ -1,8 +1,27 @@
 <?php
+
 namespace App\Models;
+
 use Illuminate\Database\Eloquent\Model;
-class QicAudit extends Model {
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class QicAudit extends Model
+{
     protected $guarded = ['id'];
-    public function issue() { return $this->belongsTo(QicIssue::class, 'issue_id'); }
-    public function actor() { return $this->belongsTo(User::class, 'actor_id'); }
+
+    /**
+     * @return BelongsTo<QicIssue, $this>
+     */
+    public function issue(): BelongsTo
+    {
+        return $this->belongsTo(QicIssue::class, 'issue_id');
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function actor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'actor_id');
+    }
 }

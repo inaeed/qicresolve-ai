@@ -49,30 +49,28 @@ class User extends Authenticatable
      * Get the user's initials
      */
     public function initials(): string
-{
-    $initials = Str::initials($this->name, true);
+    {
+        $initials = Str::initials($this->name, true);
 
-    return Str::length($initials) > 1
-        ? Str::substr($initials, 0, 1).Str::substr($initials, -1)
-        : $initials;
+        return Str::length($initials) > 1
+            ? Str::substr($initials, 0, 1).Str::substr($initials, -1)
+            : $initials;
+    }
+
+    /**
+     * Memeriksa role pengguna.
+     */
+    public function hasRole(string $role): bool
+    {
+        return $this->role === $role;
+    }
+
+    /**
+     * Memeriksa akses ke workspace.
+     */
+    public function canAccessWorkspace(string $role): bool
+    {
+        return $this->hasRole('project_owner')
+            || $this->hasRole($role);
+    }
 }
-
-/**
- * Memeriksa role pengguna.
- */
-public function hasRole(string $role): bool
-{
-    return $this->role === $role;
-}
-
-/**
- * Memeriksa akses ke workspace.
- */
-public function canAccessWorkspace(string $role): bool
-{
-    return $this->hasRole('project_owner')
-        || $this->hasRole($role);
-}
-
-}
-
