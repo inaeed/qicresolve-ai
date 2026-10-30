@@ -60,6 +60,23 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::post('/qic/complaints', [QicIssueController::class, 'saveComplaint'])->name('qic.complaints.store');
     Route::post('/qic/issues/{code}/actions', [QicIssueController::class, 'action'])->where('code', 'QI-[0-9]+')->name('qic.issues.action');
+    Route::post(
+    '/qic/issues/{code}/ai-analysis',
+    [QicIssueController::class, 'analyzeAi']
+)
+    ->where('code', 'QI-[0-9]+')
+    ->middleware('throttle:3,1')
+    ->name('qic.issues.ai-analysis');
+
+    Route::post(
+    '/qic/complaints/extract-evidence',
+    \App\Http\Controllers\QicEvidenceAiController::class
+)
+    ->middleware('throttle:3,1')
+    ->name('qic.complaints.extract-evidence');
+Route::get('/qic/evidence/{evidence}', [QicIssueController::class, 'evidence'])
+    ->whereNumber('evidence')
+    ->name('qic.evidence.show');
     Route::get('/qic/evidence/{evidence}', [QicIssueController::class, 'evidence'])->whereNumber('evidence')->name('qic.evidence.show');
 
     // Alias menuju workspace Main Assy.
