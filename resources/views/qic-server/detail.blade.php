@@ -1,3 +1,38 @@
+<style>
+    .qic-ai-result {
+        line-height: 1.8;
+        overflow-wrap: anywhere;
+    }
+
+    .qic-ai-result h1,
+    .qic-ai-result h2,
+    .qic-ai-result h3 {
+        margin: 24px 0 12px;
+        font-size: 18px;
+        font-weight: 700;
+        color: #125166;
+    }
+
+    .qic-ai-result p {
+        margin: 0 0 12px;
+    }
+
+    .qic-ai-result ul,
+    .qic-ai-result ol {
+        margin: 12px 0;
+        padding-left: 24px;
+    }
+
+    .qic-ai-result ul { list-style: disc; }
+    .qic-ai-result ol { list-style: decimal; }
+    .qic-ai-result li { margin-bottom: 8px; }
+
+    .qic-ai-result hr {
+        margin: 24px 0;
+        border: 0;
+        border-top: 1px solid #dbe6eb;
+    }
+</style>
 <nav class="qic-detail-tabs" aria-label="Bagian penanganan issue">
 <a href="{{ route($qicRole.'.issues.show',['issue'=>$issue->code]) }}" @if($qicPage==='issues.show') aria-current="page" @endif>Detail dan Investigasi</a>
 @if($qicRole==='auto-line')<a href="{{ route('auto-line.responses.create',['issue'=>$issue->code]) }}" @if(str_starts_with($qicPage,'responses.')) aria-current="page" @endif>Respons 3C</a><a href="{{ route('auto-line.corrective',['issue'=>$issue->code]) }}" @if($qicPage==='corrective') aria-current="page" @endif>Tindakan Korektif</a>@endif
@@ -16,6 +51,81 @@
 @include('qic-server.evidence',['attachments'=>$issue->evidence->whereNull('response_id')->whereIn('category',['defect','label','source_label','reference']),'evidenceTitle'=>'Foto Defect dan Label Material'])
 @if($issue->investigation)<section class="qic-card"><h2>Investigasi dan Containment</h2><h3>Investigasi</h3><p style="white-space:pre-wrap">{{ $issue->investigation }}</p><h3>Containment</h3><p style="white-space:pre-wrap">{{ $issue->containment }}</p></section>@endif
 @if($issue->evidence->where('category','investigation')->count())@include('qic-server.evidence',['attachments'=>$issue->evidence->where('category','investigation'),'evidenceTitle'=>'Evidence Investigasi'])@endif
+@if(in_array($qicRole, ['auto-line', 'quality'], true))
+<section class="qic-card" id="qic-ai-panel">
+    <h2>AI Assistant</h2>
+
+    <p class="qic-small qic-muted">
+        Analisis berdasarkan data teks complaint dan investigasi.
+        Foto belum dianalisis. Hasil perlu diverifikasi;
+        keputusan akhir tetap pada tim Quality.
+    </p>
+
+    @if(session('qic_ai_success'))
+        <p role="status">{{ session('qic_ai_success') }}</p>
+    @endif
+
+    @if(session('qic_ai_error'))
+        <p class="qic-warning" role="alert">
+            {{ session('qic_ai_error') }}
+        </p>
+    @endif
+
+    @unless(in_array($issue->status, ['draft', 'rejected', 'closed'], true))
+        <form
+            method="POST"
+            action="{{ route('qic.issues.ai-analysis', ['code' => $issue->code]) }}"
+            id="qic-ai-form"
+        >
+            @csrf
+            <input type="hidden" name="workspace" value="{{ $qicRole }}">
+
+            <button type="submit" class="qic-button" id="qic-ai-button">
+                {{ $issue->ai_analysis ? 'Analisis Ulang dengan AI' : 'Analisis dengan AI' }}
+            </button>
+
+            <p id="qic-ai-loading" role="status" hidden>
+                Sedang menganalisis, mohon tunggu…
+            </p>
+        </form>
+    @endunless
+
+    @if($issue->ai_analysis)
+        <p class="qic-small qic-muted" style="margin-top:20px">
+            Analisis terakhir:
+            {{ $issue->ai_analyzed_at?->format('d/m/Y H:i') }}.
+            Analisis ulang jika data issue berubah.
+        </p>
+
+<div class="qic-ai-result">
+    {!! \Illuminate\Support\Str::markdown($issue->ai_analysis, [
+        'html_input' => 'strip',
+        'allow_unsafe_links' => false,
+    ]) !!}
+</div>    @else
+        <p class="qic-muted">Belum ada hasil analisis AI.</p>
+    @endif
+</section>
+
+<script>
+    (() => {
+        const form = document.getElementById('qic-ai-form');
+
+        if (!form || form.dataset.aiBound) return;
+
+        form.dataset.aiBound = 'true';
+
+        form.addEventListener('submit', () => {
+            const button = document.getElementById('qic-ai-button');
+
+            button.disabled = true;
+            button.textContent = 'Sedang menganalisis…';
+
+            document.getElementById('qic-ai-loading').hidden = false;
+        });
+    })();
+</script>
+@endif
 @foreach($issue->responses as $response)
 <section class="qic-card"><h2>Respons 3C · Versi {{ $response->version }}</h2><p class="qic-small qic-muted">{{ $response->author->name }} · {{ $response->created_at->format('d/m/Y H:i') }}</p>
 @foreach(['concern'=>'Concern','cause'=>'Cause','countermeasure'=>'Countermeasure'] as $key=>$title)<h3>{{ $title }}</h3><p style="white-space:pre-wrap">{{ $response->$key }}</p>@endforeach
