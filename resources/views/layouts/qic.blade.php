@@ -323,6 +323,7 @@
     }
 }
 </style>
+
 {{-- Tema bersama dimuat setelah gaya halaman. --}}
 <style>
 /* Tema bersama QICResolve — navy–teal. */
@@ -377,7 +378,38 @@ color:#8bdcde!important;background-image:var(--qic-gradient-light)!important;bac
 .qic-app :is(.qic-badge.info,.qic-badge-info){color:#075985;background:#e0f2fe;border:1px solid #bae6fd}
 .qic-app :is(.qic-badge.neutral,.qic-badge-neutral){color:#475569;background:#f1f5f9;border:1px solid #cbd5e1}
 </style>
-<style>.qic-server-evidence{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:20px}.qic-server-file{padding:16px;border:1px solid #d6e6ec;border-radius:10px;min-width:0}.qic-server-file strong{display:block;margin-top:12px}</style>
+<style>
+    .qic-server-evidence {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+        gap: 20px;
+    }
+
+    .qic-server-file {
+        padding: 16px;
+        border: 1px solid #d6e6ec;
+        border-radius: 10px;
+        min-width: 0;
+    }
+
+    .qic-server-file strong {
+        display: block;
+        margin-top: 12px;
+    }
+
+    @media (max-width: 760px) {
+        .qic-app .qic-sidebar {
+            display: none;
+            height: auto;
+            min-height: 0;
+            max-height: none;
+        }
+
+        .qic-app .qic-sidebar.is-open {
+            display: flex;
+        }
+    }
+</style>
 </head>
 <body class="qic-app">
 @php
