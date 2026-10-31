@@ -12,9 +12,12 @@ class QicIssue extends Model
     protected $guarded = ['id'];
 
     protected function casts(): array
-    {
-        return ['occurred_at' => 'datetime'];
-    }
+{
+    return [
+        'occurred_at' => 'datetime',
+        'ai_analyzed_at' => 'datetime',
+    ];
+}
 
     /**
      * @return BelongsTo<User, $this>
