@@ -314,68 +314,67 @@ class QicIssueController extends Controller
     }
 
     public function analyzeAi(
-    Request $request,
-    string $code,
-    QicAiAnalysisService $ai
-): RedirectResponse {
-    $role = $this->workspaceRole($request);
+        Request $request,
+        string $code,
+        QicAiAnalysisService $ai
+    ): RedirectResponse {
+        $role = $this->workspaceRole($request);
 
-    // Periksa workspace dan akses terhadap issue di backend.
-    abort_unless(in_array($role, ['auto-line', 'quality'], true), 403);
+        // Periksa workspace dan akses terhadap issue di backend.
+        abort_unless($role === 'quality', 403);
+        $issue = $this->findIssue($request, $code);
 
-    $issue = $this->findIssue($request, $code);
-
-    abort_if(
-        in_array($issue->status, ['draft', 'rejected', 'closed'], true),
-        409,
-        'Analisis AI tidak tersedia untuk status issue ini.'
-    );
-
-    // Ambil data langsung dari database, bukan dari input browser.
-    $input = json_encode([
-        'material' => $issue->material,
-        'material_name' => $issue->material_name,
-        'defect' => $issue->defect,
-        'jumlah_reject_pcs' => $issue->quantity,
-        'description' => $issue->description,
-        'investigation' => $issue->investigation,
-        'containment' => $issue->containment,
-        'catatan' => 'Jumlah total inspeksi dan data SLA belum disertakan. '
-            . 'Jangan menghitung reject rate atau menyimpulkan pelanggaran SLA.',
-    ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
-
-    $target = redirect()->route(
-        $role.'.issues.show',
-        ['issue' => $issue->code]
-    );
-
-    try {
-        $result = $ai->analyze($input);
-    } catch (\RuntimeException $e) {
-        // Detail teknis tidak ditampilkan ke pengguna website.
-        return $target->with(
-            'qic_ai_error',
-            'Analisis AI belum berhasil. Layanan mungkin sibuk atau koneksi '
-            . 'terganggu. Silakan coba lagi.'
+        abort_if(
+            in_array($issue->status, ['draft', 'rejected', 'closed'], true),
+            409,
+            'Analisis AI tidak tersedia untuk status issue ini.'
         );
+
+        // Ambil data langsung dari database, bukan dari input browser.
+        $input = json_encode([
+            'material' => $issue->material,
+            'material_name' => $issue->material_name,
+            'defect' => $issue->defect,
+            'jumlah_reject_pcs' => $issue->quantity,
+            'description' => $issue->description,
+            'investigation' => $issue->investigation,
+            'containment' => $issue->containment,
+            'catatan' => 'Jumlah total inspeksi dan data SLA belum disertakan. '
+                .'Jangan menghitung reject rate atau menyimpulkan pelanggaran SLA.',
+        ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+
+        $target = redirect()->route(
+            $role.'.issues.show',
+            ['issue' => $issue->code]
+        );
+
+        try {
+            $result = $ai->analyze($input);
+        } catch (\RuntimeException $e) {
+            // Detail teknis tidak ditampilkan ke pengguna website.
+            return $target->with(
+                'qic_ai_error',
+                'Analisis AI belum berhasil. Layanan mungkin sibuk atau koneksi '
+                .'terganggu. Silakan coba lagi.'
+            );
+        }
+
+        // Simpan hasil dan audit secara bersamaan.
+        DB::transaction(function () use ($issue, $result, $request) {
+            $issue->ai_analysis = $result;
+            $issue->ai_analyzed_at = now();
+            $issue->ai_model = config('services.gemini.model');
+            $issue->save();
+
+            $this->audit(
+                $issue,
+                $request->user()->id,
+                'Analisis AI dibuat',
+                $issue->status,
+                'Hasil AI tersedia sebagai pendukung keputusan; status issue tetap.'
+            );
+        });
+
+        return $target->with('qic_ai_success', 'Hasil analisis AI berhasil disimpan.');
     }
-
-    // Simpan hasil dan audit secara bersamaan.
-    DB::transaction(function () use ($issue, $result, $request) {
-        $issue->ai_analysis = $result;
-        $issue->ai_analyzed_at = now();
-        $issue->ai_model = config('services.gemini.model');
-        $issue->save();
-
-        $this->audit(
-            $issue,
-            $request->user()->id,
-            'Analisis AI dibuat',
-            $issue->status,
-            'Hasil AI tersedia sebagai pendukung keputusan; status issue tetap.'
-        );
-    });
-
-    return $target->with('qic_ai_success', 'Hasil analisis AI berhasil disimpan.');
-}
 }

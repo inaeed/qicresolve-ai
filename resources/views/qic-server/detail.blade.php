@@ -51,7 +51,7 @@
 @include('qic-server.evidence',['attachments'=>$issue->evidence->whereNull('response_id')->whereIn('category',['defect','label','source_label','reference']),'evidenceTitle'=>'Foto Defect dan Label Material'])
 @if($issue->investigation)<section class="qic-card"><h2>Investigasi dan Containment</h2><h3>Investigasi</h3><p style="white-space:pre-wrap">{{ $issue->investigation }}</p><h3>Containment</h3><p style="white-space:pre-wrap">{{ $issue->containment }}</p></section>@endif
 @if($issue->evidence->where('category','investigation')->count())@include('qic-server.evidence',['attachments'=>$issue->evidence->where('category','investigation'),'evidenceTitle'=>'Evidence Investigasi'])@endif
-@if(in_array($qicRole, ['auto-line', 'quality'], true))
+@if($qicRole === 'quality')
 <section class="qic-card" id="qic-ai-panel">
     <h2>AI Assistant</h2>
 
