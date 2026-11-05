@@ -438,7 +438,18 @@ color:#8bdcde!important;background-image:var(--qic-gradient-light)!important;bac
             @endif
         @endforeach
     </nav>
-    <div class="qic-sidebar-end"><a href="{{ route('dashboard') }}? view=workspaces">Ganti workspace demo</a><form action="{{ route('logout') }}" method="POST">@csrf<button type="submit">Keluar akun</button></form></div>
+     <div class="qic-sidebar-end">
+        @if(auth()->user()?->role === 'project_owner')
+            <a href="{{ route('dashboard', ['view' => 'workspaces']) }}">
+                Ganti workspace demo
+            </a>
+        @endif
+
+        <form action="{{ route('logout') }}" method="POST">
+            @csrf
+            <button type="submit">Keluar akun</button>
+        </form>
+    </div>
 </aside>
 <div class="qic-shell">
     <header class="qic-topbar"><button type="button" class="qic-button qic-secondary qic-menu" data-menu aria-controls="qic-sidebar" aria-expanded="false">Menu</button><div><span class="qic-muted qic-small">{{ $definition['label'] }}</span><strong>{{ $qicTitle ?? 'Workspace' }}</strong></div><a class="qic-user" href="{{ route($qicRole.'.profile') }}">{{ auth()->user()->name }}</a></header>
