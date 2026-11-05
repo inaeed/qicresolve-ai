@@ -48,7 +48,7 @@ class QicAiAnalysisService
 
         try {
             $response = Http::acceptJson()
-    ->withOptions(['force_ip_resolve' => 'v4'])
+                ->withOptions(['force_ip_resolve' => 'v4'])
                 ->withHeaders([
                     'x-goog-api-key' => $apiKey,
                 ])
@@ -56,8 +56,8 @@ class QicAiAnalysisService
                 ->timeout(90)
                 ->post(
                     'https://generativelanguage.googleapis.com/v1beta/models/'
-                    . rawurlencode($model)
-                    . ':generateContent',
+                    .rawurlencode($model)
+                    .':generateContent',
                     [
                         'systemInstruction' => [
                             'parts' => [
@@ -70,20 +70,20 @@ class QicAiAnalysisService
                                 'parts' => [
                                     [
                                         'text' => "Analisis issue berikut:\n"
-                                            . $description,
+                                            .$description,
                                     ],
                                 ],
                             ],
                         ],
                     ]
                 );
-} catch (ConnectionException $e) {
-    throw new RuntimeException(
-        'Koneksi Gemini gagal: ' . $e->getMessage(),
-        0,
-        $e
-    );
-}
+        } catch (ConnectionException $e) {
+            throw new RuntimeException(
+                'Koneksi Gemini gagal: '.$e->getMessage(),
+                0,
+                $e
+            );
+        }
 
         if ($response->failed()) {
             $message = match ($response->status()) {
@@ -105,7 +105,9 @@ class QicAiAnalysisService
             );
         }
 
-        $result = collect(data_get($candidate, 'content.parts', []))
+        $responseParts = data_get($candidate, 'content.parts', []);
+
+        $result = collect(is_array($responseParts) ? $responseParts : [])
             ->reject(fn ($part) => data_get($part, 'thought', false))
             ->pluck('text')
             ->filter(fn ($text) => is_string($text) && trim($text) !== '')
