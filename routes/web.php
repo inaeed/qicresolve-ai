@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\QicIssueController;
+use App\Http\Controllers\QicQualityInsightController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
@@ -77,6 +78,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::get('/qic/evidence/{evidence}', [QicIssueController::class, 'evidence'])
     ->whereNumber('evidence')
     ->name('qic.evidence.show');
+    Route::post(
+        '/qic/quality/insight',
+        QicQualityInsightController::class
+    )
+        ->middleware('throttle:3,1')
+        ->name('qic.quality.insight');
+
     Route::get('/qic/evidence/{evidence}', [QicIssueController::class, 'evidence'])->whereNumber('evidence')->name('qic.evidence.show');
 
     // Alias menuju workspace Main Assy.

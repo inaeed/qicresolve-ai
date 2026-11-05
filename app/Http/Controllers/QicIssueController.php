@@ -6,8 +6,10 @@ use App\Models\QicAudit;
 use App\Models\QicEvidence;
 use App\Models\QicIssue;
 use App\Models\User;
-use App\Services\QicEvidenceStore;
 use App\Services\QicAiAnalysisService;
+use App\Services\QicEvidenceStore;
+use App\Services\QicIssueSlaService;
+use App\Services\QicSlaSnapshotService;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -77,7 +79,23 @@ class QicIssueController extends Controller
             }
         }
 
+        $slaSummaries = [];
+
+        if ($role === 'quality' && $page === 'sla-monitoring') {
+            $slaService = app(QicIssueSlaService::class);
+            $evaluatedAt = now();
+
+            foreach ($all as $record) {
+                $slaSummaries[$record->id] = $slaService->summarize(
+                    $record,
+                    $evaluatedAt
+                );
+            }
+        }
+
         return view('qic-server.workspace', [
+            'slaSummaries' => $slaSummaries,
+
             'qicRole' => $role, 'qicPage' => $page, 'qicScreen' => $definition['screen'],
             'qicTitle' => $definition['title'], 'serverBacked' => true,
             'issue' => $issue, 'records' => $all, 'overview' => $overview, 'activity' => $activity, 'showForm' => $form,
