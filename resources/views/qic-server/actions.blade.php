@@ -25,6 +25,27 @@
 @foreach(['investigation'=>'Hasil investigasi','containment'=>'Containment / Pengendalian sementara'] as $field=>$label)<label class="qic-field">{{ $label }}<textarea name="{{ $field }}" required maxlength="5000">{{ old($field,$issue->$field) }}</textarea></label>@endforeach
 @endif
 @if($action==='submit_3c')
+<div style="padding:16px;border:1px solid #badde1;border-radius:12px;margin-bottom:18px">
+    <h3>AI 3C Assistant</h3>
+
+    <p class="qic-small qic-muted">
+        Membantu menyusun Concern, Cause, dan Countermeasure dari
+        complaint serta investigasi yang sudah disimpan.
+        Simpan investigasi terbaru terlebih dahulu.
+        Periksa dan koreksi usulan sebelum mengirim 3C.
+    </p>
+
+    <button
+        type="button"
+        class="qic-button"
+        data-three-c-ai
+        data-url="{{ route('qic.issues.three-c-suggestion', ['code' => $issue->code]) }}"
+    >
+        Bantu Susun 3C
+    </button>
+
+    <p data-three-c-status role="status" aria-live="polite"></p>
+</div>
 <p class="qic-small qic-muted">Setiap pengiriman membuat versi baru. Versi dan evidence sebelumnya tetap tersimpan.</p>
 @foreach(['concern'=>'Concern','cause'=>'Cause (hipotesis/simulasi harus disebutkan)','countermeasure'=>'Countermeasure'] as $field=>$label)<label class="qic-field">{{ $label }}<textarea name="{{ $field }}" required maxlength="5000">{{ old($field) }}</textarea></label>@endforeach
 @endif
@@ -36,3 +57,94 @@
 <button class="qic-button" type="submit">{{ $title }}</button>
 </form></section>
 @endforeach
+<script>
+(() => {
+    document.querySelectorAll('[data-three-c-ai]').forEach(button => {
+        if (button.dataset.bound) return;
+        button.dataset.bound = 'true';
+
+        const form = button.closest('form');
+        const status = form.querySelector('[data-three-c-status]');
+        const names = ['concern', 'cause', 'countermeasure'];
+        const edited = new Set();
+
+        names.forEach(name => {
+            form.elements.namedItem(name)?.addEventListener('input', () => {
+                edited.add(name);
+            });
+        });
+
+        button.addEventListener('click', async () => {
+            const hasEmptyField = names.some(name => {
+                const field = form.elements.namedItem(name);
+                return field && !field.value.trim() && !edited.has(name);
+            });
+
+            if (!hasEmptyField) {
+                status.textContent =
+                    'Semua kolom sudah diisi atau diedit. '
+                    + 'Isianmu tidak ditimpa oleh AI.';
+                return;
+            }
+
+            button.disabled = true;
+            button.textContent = 'Sedang menyusun draf…';
+            status.textContent = 'Mohon tunggu.';
+
+            try {
+                const response = await fetch(button.dataset.url, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': form.elements.namedItem('_token').value,
+                    },
+                    body: JSON.stringify({}),
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        result.message || 'Draf AI belum berhasil dibuat.'
+                    );
+                }
+
+                let filled = 0;
+
+                names.forEach(name => {
+                    const field = form.elements.namedItem(name);
+                    const value = result.fields?.[name];
+
+                    if (
+                        field
+                        && !field.value.trim()
+                        && !edited.has(name)
+                        && typeof value === 'string'
+                        && value.trim()
+                    ) {
+                        field.value = value.trim();
+                        field.dispatchEvent(
+                            new Event('change', { bubbles: true })
+                        );
+                        filled++;
+                    }
+                });
+
+                status.textContent =
+                    `${filled} kolom kosong diisi dengan usulan AI. `
+                    + 'Periksa dan edit sebelum dikirim. '
+                    + (result.fields?.notes || '');
+            } catch (error) {
+                status.textContent = error instanceof SyntaxError
+                    ? 'Respons server tidak valid. Muat ulang halaman dan coba lagi.'
+                    : error.message;
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Bantu Susun 3C';
+            }
+        });
+    });
+})();
+</script>
