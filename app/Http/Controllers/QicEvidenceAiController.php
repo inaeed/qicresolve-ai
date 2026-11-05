@@ -35,7 +35,7 @@ class QicEvidenceAiController extends Controller
         } catch (RuntimeException) {
             return response()->json([
                 'message' => 'Evidence belum berhasil dibaca. '
-                    . 'Coba lagi atau lanjutkan pengisian manual.',
+                    .'Coba lagi atau lanjutkan pengisian manual.',
             ], 503);
         }
 

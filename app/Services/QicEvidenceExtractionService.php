@@ -10,6 +10,9 @@ use RuntimeException;
 
 class QicEvidenceExtractionService
 {
+    /**
+     * @return array{material: string|null, material_name: string|null, batch: string|null, defect: string|null, description: string|null, notes: string|null}
+     */
     public function extract(
         UploadedFile $defect,
         UploadedFile $label
@@ -69,8 +72,8 @@ class QicEvidenceExtractionService
                 ->timeout(90)
                 ->post(
                     'https://generativelanguage.googleapis.com/v1beta/models/'
-                    . rawurlencode($model)
-                    . ':generateContent',
+                    .rawurlencode($model)
+                    .':generateContent',
                     [
                         'systemInstruction' => [
                             'parts' => [['text' => $instruction]],
@@ -99,7 +102,9 @@ class QicEvidenceExtractionService
             throw new RuntimeException('Pembacaan evidence tidak selesai.');
         }
 
-        $text = collect(data_get($candidate, 'content.parts', []))
+        $responseParts = data_get($candidate, 'content.parts', []);
+
+        $text = collect(is_array($responseParts) ? $responseParts : [])
             ->reject(fn ($part) => data_get($part, 'thought', false))
             ->pluck('text')
             ->filter(fn ($value) => is_string($value))
@@ -111,7 +116,7 @@ class QicEvidenceExtractionService
             throw new RuntimeException('Format hasil AI tidak valid.');
         }
 
-        if (!is_array($data)) {
+        if (! is_array($data)) {
             throw new RuntimeException('Hasil AI bukan data form yang valid.');
         }
 
@@ -131,9 +136,15 @@ class QicEvidenceExtractionService
             );
         }
 
-        return $validator->validated();
+        /** @var array{material: string|null, material_name: string|null, batch: string|null, defect: string|null, description: string|null, notes: string|null} $fields */
+        $fields = $validator->validated();
+
+        return $fields;
     }
 
+    /**
+     * @return array{inlineData: array{mimeType: string|null, data: string}}
+     */
     private function filePart(UploadedFile $file): array
     {
         $contents = file_get_contents($file->getRealPath());
