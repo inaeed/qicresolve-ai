@@ -144,7 +144,10 @@ class QicEvidenceDatabaseTest extends TestCase
         $this->get(route('quality.reviews.index'))->assertOk()->assertSee('Tinjau Respons dan Evidence');
         $this->get(route('quality.reports'))->assertOk()->assertSee('Distribusi Status')->assertSee('Jenis Defect');
         $this->get(route('quality.notifications'))->assertOk()->assertSee('Aktivitas Issue Terbaru')->assertSee('Impor');
-        $this->get(route('quality.sla-monitoring'))->assertOk()->assertSee('Aturan SLA belum dikonfigurasi');
+        $this->get(route('quality.sla-monitoring'))
+            ->assertOk()
+            ->assertViewHas('qicPage', 'sla-monitoring')
+            ->assertViewHas('slaSummaries');
     }
 
     public function test_full_workflow_stores_corrective_file_and_closes_only_after_review(): void
