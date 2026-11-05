@@ -22,8 +22,26 @@
 @case('profile')
 <section class="qic-card"><h2>{{ auth()->user()->name }}</h2><dl class="qic-details"><dt>Email</dt><dd>{{ auth()->user()->email }}</dd><dt>Role akun</dt><dd>{{ auth()->user()->role }}</dd><dt>Workspace</dt><dd>{{ config('qic_ui')[$qicRole]['label'] }}</dd></dl><a class="qic-button" href="{{ route('profile.edit') }}">Pengaturan akun</a></section>
 @break
-@case('sla-monitoring') @case('ai-insights') @case('master-data') @include('qic-server.future') @break
-@case('history')
+@case('sla-monitoring')
+    @if($qicRole === 'quality')
+        @include('qic-server.sla-monitoring')
+    @else
+        @include('qic-server.future')
+    @endif
+    @break
+
+@case('ai-insights')
+    @if($qicRole === 'quality')
+        @include('qic-server.ai-insights')
+    @else
+        @include('qic-server.future')
+    @endif
+    @break
+
+@case('master-data')
+    @include('qic-server.future')
+    @break
+    @case('history')
 <div class="qic-role-intro"><h2>Riwayat Penanganan</h2><p>Issue yang telah selesai atau ditolak. Riwayat lengkap dan evidence tersedia pada detail issue.</p></div>
 @include('qic-server.issue-list',['listTitle'=>'Arsip Penanganan']) @break
 @case('assignments')

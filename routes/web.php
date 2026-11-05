@@ -1,6 +1,10 @@
 <?php
 
+use App\Http\Controllers\QicEvidenceAiController;
 use App\Http\Controllers\QicIssueController;
+use App\Http\Controllers\QicQualityAiController;
+use App\Http\Controllers\QicQualityInsightController;
+use App\Http\Controllers\QicThreeCAiController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
@@ -60,8 +64,47 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::post('/qic/complaints', [QicIssueController::class, 'saveComplaint'])->name('qic.complaints.store');
     Route::post('/qic/issues/{code}/actions', [QicIssueController::class, 'action'])->where('code', 'QI-[0-9]+')->name('qic.issues.action');
-    Route::get('/qic/evidence/{evidence}', [QicIssueController::class, 'evidence'])->whereNumber('evidence')->name('qic.evidence.show');
+    Route::post(
+        '/qic/issues/{code}/ai-analysis',
+        [QicIssueController::class, 'analyzeAi']
+    )
+        ->where('code', 'QI-[0-9]+')
+        ->middleware('throttle:3,1')
+        ->name('qic.issues.ai-analysis');
 
+    Route::post(
+        '/qic/complaints/extract-evidence',
+        QicEvidenceAiController::class
+    )
+        ->middleware('throttle:3,1')
+        ->name('qic.complaints.extract-evidence');
+
+    Route::post(
+        '/qic/issues/{code}/three-c-suggestion',
+        QicThreeCAiController::class
+    )
+        ->where('code', 'QI-[0-9]+')
+        ->middleware('throttle:3,1')
+        ->name('qic.issues.three-c-suggestion');
+
+    Route::post(
+        '/qic/issues/{code}/quality-suggestion',
+        QicQualityAiController::class
+    )
+        ->where('code', 'QI-[0-9]+')
+        ->middleware('throttle:3,1')
+        ->name('qic.issues.quality-suggestion');
+
+    Route::post(
+        '/qic/quality/insight',
+        QicQualityInsightController::class
+    )
+        ->middleware('throttle:3,1')
+        ->name('qic.quality.insight');
+
+    Route::get('/qic/evidence/{evidence}', [QicIssueController::class, 'evidence'])
+        ->whereNumber('evidence')
+        ->name('qic.evidence.show');
     // Alias menuju workspace Main Assy.
     Route::redirect('/issues', '/main-assy/issues')
         ->middleware('role:main_assy')

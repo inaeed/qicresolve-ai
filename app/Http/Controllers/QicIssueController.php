@@ -6,7 +6,10 @@ use App\Models\QicAudit;
 use App\Models\QicEvidence;
 use App\Models\QicIssue;
 use App\Models\User;
+use App\Services\QicAiAnalysisService;
 use App\Services\QicEvidenceStore;
+use App\Services\QicIssueSlaService;
+use App\Services\QicSlaSnapshotService;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -76,7 +79,23 @@ class QicIssueController extends Controller
             }
         }
 
+        $slaSummaries = [];
+
+        if ($role === 'quality' && $page === 'sla-monitoring') {
+            $slaService = app(QicIssueSlaService::class);
+            $evaluatedAt = now();
+
+            foreach ($all as $record) {
+                $slaSummaries[$record->id] = $slaService->summarize(
+                    $record,
+                    $evaluatedAt
+                );
+            }
+        }
+
         return view('qic-server.workspace', [
+            'slaSummaries' => $slaSummaries,
+
             'qicRole' => $role, 'qicPage' => $page, 'qicScreen' => $definition['screen'],
             'qicTitle' => $definition['title'], 'serverBacked' => true,
             'issue' => $issue, 'records' => $all, 'overview' => $overview, 'activity' => $activity, 'showForm' => $form,
@@ -85,9 +104,25 @@ class QicIssueController extends Controller
         ]);
     }
 
-    private function audit(QicIssue $issue, int $user, string $action, ?string $previous, ?string $note = null): void
-    {
-        $issue->audits()->create(['actor_id' => $user, 'action' => $action, 'from_status' => $previous, 'to_status' => $issue->status, 'note' => $note]);
+    private function audit(
+        QicIssue $issue,
+        int $user,
+        string $action,
+        ?string $previous,
+        ?string $note = null
+    ): void {
+        $issue->audits()->create([
+            'actor_id' => $user,
+            'action' => $action,
+            'from_status' => $previous,
+            'to_status' => $issue->status,
+            'note' => $note,
+        ]);
+
+        if ($previous !== $issue->status) {
+            app(QicSlaSnapshotService::class)
+                ->capture($issue);
+        }
     }
 
     public function saveComplaint(Request $request, QicEvidenceStore $files): RedirectResponse
@@ -276,5 +311,70 @@ class QicIssueController extends Controller
             ],
             $inline ? 'inline' : 'attachment'
         );
+    }
+
+    public function analyzeAi(
+        Request $request,
+        string $code,
+        QicAiAnalysisService $ai
+    ): RedirectResponse {
+        $role = $this->workspaceRole($request);
+
+        // Periksa workspace dan akses terhadap issue di backend.
+        abort_unless($role === 'quality', 403);
+        $issue = $this->findIssue($request, $code);
+
+        abort_if(
+            in_array($issue->status, ['draft', 'rejected', 'closed'], true),
+            409,
+            'Analisis AI tidak tersedia untuk status issue ini.'
+        );
+
+        // Ambil data langsung dari database, bukan dari input browser.
+        $input = json_encode([
+            'material' => $issue->material,
+            'material_name' => $issue->material_name,
+            'defect' => $issue->defect,
+            'jumlah_reject_pcs' => $issue->quantity,
+            'description' => $issue->description,
+            'investigation' => $issue->investigation,
+            'containment' => $issue->containment,
+            'catatan' => 'Jumlah total inspeksi dan data SLA belum disertakan. '
+                .'Jangan menghitung reject rate atau menyimpulkan pelanggaran SLA.',
+        ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+
+        $target = redirect()->route(
+            $role.'.issues.show',
+            ['issue' => $issue->code]
+        );
+
+        try {
+            $result = $ai->analyze($input);
+        } catch (\RuntimeException $e) {
+            // Detail teknis tidak ditampilkan ke pengguna website.
+            return $target->with(
+                'qic_ai_error',
+                'Analisis AI belum berhasil. Layanan mungkin sibuk atau koneksi '
+                .'terganggu. Silakan coba lagi.'
+            );
+        }
+
+        // Simpan hasil dan audit secara bersamaan.
+        DB::transaction(function () use ($issue, $result, $request) {
+            $issue->ai_analysis = $result;
+            $issue->ai_analyzed_at = now();
+            $issue->ai_model = config('services.gemini.model');
+            $issue->save();
+
+            $this->audit(
+                $issue,
+                $request->user()->id,
+                'Analisis AI dibuat',
+                $issue->status,
+                'Hasil AI tersedia sebagai pendukung keputusan; status issue tetap.'
+            );
+        });
+
+        return $target->with('qic_ai_success', 'Hasil analisis AI berhasil disimpan.');
     }
 }
