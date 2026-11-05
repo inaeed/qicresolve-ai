@@ -104,9 +104,25 @@ class QicIssueController extends Controller
         ]);
     }
 
-    private function audit(QicIssue $issue, int $user, string $action, ?string $previous, ?string $note = null): void
-    {
-        $issue->audits()->create(['actor_id' => $user, 'action' => $action, 'from_status' => $previous, 'to_status' => $issue->status, 'note' => $note]);
+    private function audit(
+        QicIssue $issue,
+        int $user,
+        string $action,
+        ?string $previous,
+        ?string $note = null
+    ): void {
+        $issue->audits()->create([
+            'actor_id' => $user,
+            'action' => $action,
+            'from_status' => $previous,
+            'to_status' => $issue->status,
+            'note' => $note,
+        ]);
+
+        if ($previous !== $issue->status) {
+            app(QicSlaSnapshotService::class)
+                ->capture($issue);
+        }
     }
 
     public function saveComplaint(Request $request, QicEvidenceStore $files): RedirectResponse
