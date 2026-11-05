@@ -87,6 +87,14 @@ Route::get('/qic/evidence/{evidence}', [QicIssueController::class, 'evidence'])
         ->name('qic.issues.three-c-suggestion');
 
     Route::post(
+        '/qic/issues/{code}/quality-suggestion',
+        \App\Http\Controllers\QicQualityAiController::class
+    )
+        ->where('code', 'QI-[0-9]+')
+        ->middleware('throttle:3,1')
+        ->name('qic.issues.quality-suggestion');
+
+    Route::post(
         '/qic/quality/insight',
         QicQualityInsightController::class
     )
